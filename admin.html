@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestione Dati - Sanremo 2026</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Schermata Login -->
+    <div id="loginScreen" class="login-screen">
+        <div class="login-box">
+            <h1>🔒 Accesso Riservato</h1>
+            <p>Inserisci la password per gestire i dati</p>
+            <form id="loginForm" onsubmit="checkPassword(event)">
+                <input type="password" id="passwordInput" placeholder="Password" required autocomplete="off">
+                <button type="submit" class="btn-primary">Accedi</button>
+                <div id="loginError" class="login-error"></div>
+            </form>
+            <a href="index.html" class="back-link">← Torna alla classifica</a>
+        </div>
+    </div>
+
+    <!-- Contenuto Admin (nascosto inizialmente) -->
+    <div id="adminContent" style="display: none;">
+        <div class="container">
+            <header>
+                <h1>⚙️ Gestione Dati Sanremo 2026</h1>
+                <nav>
+                    <a href="index.html">Classifica</a>
+                    <a href="admin.html" class="active">Gestione Dati</a>
+                    <button onclick="logout()" class="btn-logout">🚪 Esci</button>
+                </nav>
+            </header>
+
+            <main>
+                <div class="admin-actions">
+                    <button onclick="addNewArtist()" class="btn-primary">+ Aggiungi Artista</button>
+                    <button onclick="exportData()" class="btn-secondary">📥 Esporta data.json</button>
+                    <label class="btn-secondary" style="cursor: pointer;">
+                        📤 Importa JSON
+                        <input type="file" id="importFile" accept=".json" style="display: none;" onchange="importData(event)">
+                    </label>
+                </div>
+
+                <div class="info-box">
+                    <strong>ℹ️ Come aggiornare il sito:</strong> Dopo ogni modifica, clicca "Esporta data.json" e ricarica il file su GitHub. 
+                    La posizione e il punteggio finale vengono calcolati automaticamente dalla somma dei 4 punteggi.
+                </div>
+
+                <div class="artists-grid" id="artistsGrid">
+                    <!-- Popolato dinamicamente -->
+                </div>
+            </main>
+        </div>
+
+        <!-- Modal per modifica artista -->
+        <div id="editModal" class="modal">
+            <div class="modal-content">
+                <span class="close" onclick="closeEditModal()">&times;</span>
+                <h2 id="modalTitle">Modifica Artista</h2>
+                <form id="editForm" onsubmit="saveArtist(event)">
+                    <input type="hidden" id="editId">
+
+                    <div class="form-group">
+                        <label for="editName">Nome Artista *</label>
+                        <input type="text" id="editName" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="editSong">Titolo Canzone</label>
+                        <input type="text" id="editSong">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="editPhoto">URL Foto</label>
+                        <input type="url" id="editPhoto" placeholder="https://...">
+                        <small>Puoi usare servizi come imgur.com o imgbb.com per caricare foto gratuitamente</small>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="editPerformance">Performance (0-10)</label>
+                            <input type="number" id="editPerformance" min="0" max="10" step="0.5" value="0">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="editSongScore">Valutazione Brano (0-10)</label>
+                            <input type="number" id="editSongScore" min="0" max="10" step="0.5" value="0">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="editLyrics">Valutazione Testo (0-10)</label>
+                            <input type="number" id="editLyrics" min="0" max="10" step="0.5" value="0">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="editCover">Serata Cover (0-10)</label>
+                            <input type="number" id="editCover" min="0" max="10" step="0.5" value="0">
+                        </div>
+                    </div>
+
+                    <div class="info-box" style="margin-bottom: 20px;">
+                        <strong>Punteggio Finale:</strong> Calcolato automaticamente come somma dei 4 punteggi sopra
+                    </div>
+
+                    <div class="form-group">
+                        <label for="editReview">Valutazione Dettagliata</label>
+                        <textarea id="editReview" rows="6" placeholder="Scrivi qui la tua valutazione completa..."></textarea>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn-primary">Salva</button>
+                        <button type="button" onclick="closeEditModal()" class="btn-secondary">Annulla</button>
+                        <button type="button" onclick="deleteArtist()" class="btn-danger">Elimina</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="admin.js"></script>
+</body>
+</html>

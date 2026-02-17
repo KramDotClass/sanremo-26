@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Classifica Sanremo 2026</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎵 La Mia Classifica Sanremo 2026</h1>
+            <nav>
+                <a href="index.html" class="active">Classifica</a>
+                <a href="admin.html">Gestione Dati</a>
+            </nav>
+        </header>
+
+        <main>
+            <div class="table-container">
+                <table id="rankingTable">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Artista</th>
+                            <th>Performance</th>
+                            <th>Brano</th>
+                            <th>Testo</th>
+                            <th>Cover</th>
+                            <th>Totale</th>
+                            <th>Punteggio Finale</th>
+                            <th>Azioni</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <!-- Popolato dinamicamente -->
+                    </tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal per valutazione dettagliata -->
+    <div id="reviewModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <div id="modalBody">
+                <!-- Contenuto dinamico -->
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
