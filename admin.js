@@ -61,16 +61,17 @@ function logout() {
 }
 
 async function loadData() {
-    if (!isAuthenticated) return;
-
     try {
-        const response = await fetch('data.json');
+        const timestamp = new Date().getTime(); // cache-busting
+        const response = await fetch('data.json?v=' + timestamp, {
+            cache: 'no-store'
+        });
         artists = await response.json();
-        renderArtists();
+        renderTable();
     } catch (error) {
         console.error('Errore nel caricamento dei dati:', error);
-        artists = [];
-        renderArtists();
+        document.getElementById('tableBody').innerHTML = 
+            '<tr><td colspan="9" style="text-align: center; padding: 40px;">Errore nel caricamento dei dati</td></tr>';
     }
 }
 
