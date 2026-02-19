@@ -41,7 +41,8 @@ function renderTable() {
                 <div class="artist-cell">
                     <img src="${artist.photo || 'https://via.placeholder.com/60'}" 
                          alt="${artist.name}" 
-                         class="artist-photo"
+                         class="artist-photo clickable-image"
+                         onclick="openImageModal('${artist.photo || 'https://via.placeholder.com/60'}', '${artist.name}')"
                          onerror="this.src='https://via.placeholder.com/60'">
                     <div class="artist-info">
                         <span class="artist-name">${artist.name}</span>
@@ -110,10 +111,27 @@ function closeModal() {
     document.getElementById('reviewModal').style.display = 'none';
 }
 
+function openImageModal(src, alt) {
+    const modal = document.getElementById('imageModal');
+    const modalImage = document.getElementById('modalImage');
+    modalImage.src = src;
+    modalImage.alt = alt;
+    modal.style.display = 'block';
+}
+
+function closeImageModal() {
+    document.getElementById('imageModal').style.display = 'none';
+}
+
 // Chiudi modal cliccando fuori
 window.onclick = function(event) {
-    const modal = document.getElementById('reviewModal');
-    if (event.target === modal) {
-        modal.style.display = 'none';
+    const reviewModal = document.getElementById('reviewModal');
+    const imageModal = document.getElementById('imageModal');
+    
+    if (event.target === reviewModal) {
+        reviewModal.style.display = 'none';
+    }
+    if (event.target === imageModal) {
+        imageModal.style.display = 'none';
     }
 }

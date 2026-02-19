@@ -242,6 +242,16 @@ tr:hover {
     border: 3px solid var(--primary);
 }
 
+.artist-photo.clickable-image {
+    cursor: pointer;
+    transition: transform 0.3s, filter 0.3s;
+}
+
+.artist-photo.clickable-image:hover {
+    transform: scale(1.1);
+    filter: brightness(1.2);
+}
+
 .artist-info {
     display: flex;
     flex-direction: column;
@@ -553,6 +563,50 @@ tr:hover {
     border-radius: 8px;
     line-height: 1.8;
     margin-top: 15px;
+}
+
+/* Image Modal */
+.image-modal {
+    z-index: 2000;
+}
+
+.image-modal-content {
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+.image-modal-content img {
+    max-width: 90%;
+    max-height: 90vh;
+    border-radius: 8px;
+    object-fit: contain;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.image-modal-content .close {
+    position: absolute;
+    top: 20px;
+    right: 30px;
+    color: white;
+    font-size: 40px;
+    font-weight: bold;
+    cursor: pointer;
+    background: rgba(0, 0, 0, 0.5);
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.3s;
+    z-index: 2001;
+}
+
+.image-modal-content .close:hover {
+    background: rgba(0, 0, 0, 0.8);
 }
 
 @media (max-width: 768px) {
