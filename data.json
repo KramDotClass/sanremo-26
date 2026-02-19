@@ -1,26 +1,14 @@
 [
   {
-    "id": 1,
-    "name": "Esempio Artista 1",
-    "song": "Titolo Canzone",
-    "photo": "https://via.placeholder.com/150",
-    "performance": 8.5,
-    "songScore": 7.5,
-    "lyrics": 8.0,
-    "cover": 9.0,
-    "finalScore": 7.5,
-    "review": "Scrivi qui la tua valutazione dettagliata..."
-  },
-  {
-    "id": 2,
-    "name": "Esempio Artista 2",
-    "song": "Un'altra Canzone",
-    "photo": "https://via.placeholder.com/150",
-    "performance": 7.0,
-    "songScore": 8.0,
-    "lyrics": 7.5,
-    "cover": 8.5,
-    "finalScore": 8.0,
-    "review": "Altra valutazione..."
+    "name": "bilbo",
+    "song": "wqfq",
+    "photo": "https://share.google/GtYCl8KyBPDs7FzPz",
+    "performance": 0,
+    "songScore": 0,
+    "lyrics": 0,
+    "cover": 0,
+    "finalScore": 0,
+    "review": "efwEV",
+    "id": 1
   }
 ]
