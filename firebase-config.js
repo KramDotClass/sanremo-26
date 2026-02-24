@@ -43,35 +43,36 @@
 //    - Campi: artistId (Crescente), timestamp (Crescente)
 //    - Clicca "Crea indice" e attendi 1-2 minuti
 //
-// NOTA: La configurazione Firebase lato client è pubblica per design.
-//       La sicurezza è garantita esclusivamente dalle Regole Firestore.
+// SICUREZZA DELLA API KEY:
+//   Le API key Firebase lato client sono pubbliche per design: da sole
+//   non bastano ad accedere ai dati. La sicurezza reale viene da:
+//   1. Le Firestore Security Rules (configurate al punto 5)
+//   2. La restrizione della chiave su Google Cloud Console:
+//      → https://console.cloud.google.com/apis/credentials
+//      → Clicca sulla chiave "Browser key (auto created by Firebase)"
+//      → In "Restrizioni applicazione" scegli "Referrer HTTP"
+//      → Aggiungi SOLO il tuo dominio, es: tuonome.github.io/*
+//      Così la chiave non funzionerà da nessun altro sito.
 // ============================================================
 
-// Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
+// ⚠️ NON usare la sintassi "import" — questo file è caricato come
+//    script classico (non ES module). L'SDK Firebase è già caricato
+//    via CDN in index.html e si usa tramite la variabile globale firebase.
 
-// Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyAJqcBDAlyaPsHxV2STl7_spB6Xwb8jq-g",
-  authDomain: "sanremo-26.firebaseapp.com",
-  projectId: "sanremo-26",
-  storageBucket: "sanremo-26.firebasestorage.app",
-  messagingSenderId: "589022680248",
-  appId: "1:589022680248:web:f81eb495f7e53f69b1d04d"
+    apiKey: "AIzaSyAJqcBDAlyaPsHxV2STl7_spB6Xwb8jq-g",
+    authDomain: "sanremo-26.firebaseapp.com",
+    projectId: "sanremo-26",
+    storageBucket: "sanremo-26.firebasestorage.app",
+    messagingSenderId: "589022680248",
+    appId: "1:589022680248:web:f81eb495f7e53f69b1d04d"
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
 try {
-    if (firebaseConfig.apiKey.startsWith("INSERISCI")) {
-        throw new Error("Configurazione non completata");
-    }
     firebase.initializeApp(firebaseConfig);
     window.db = firebase.firestore();
     console.log("✅ Firebase inizializzato. Sistema commenti attivo.");
 } catch (e) {
-    console.warn("⚠️ Firebase non configurato. Segui le istruzioni in firebase-config.js per attivare i commenti.", e.message);
+    console.warn("⚠️ Errore inizializzazione Firebase:", e.message);
     window.db = null;
 }
