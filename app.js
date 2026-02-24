@@ -1,21 +1,44 @@
 let artists = [];
 let commentsUnsubscribe = null;
 
-// Carica i dati dal JSON all'avvio
+// Carica i dati da Firestore all'avvio
 document.addEventListener('DOMContentLoaded', () => {
     loadData();
 });
 
-async function loadData() {
-    try {
-        const response = await fetch('data.json');
-        artists = await response.json();
-        renderTable();
-    } catch (error) {
-        console.error('Errore nel caricamento dei dati:', error);
-        document.getElementById('tableBody').innerHTML = 
-            '<tr><td colspan="9" style="text-align: center; padding: 40px;">Errore nel caricamento dei dati</td></tr>';
+function loadData() {
+    const tbody = document.getElementById('tableBody');
+
+    if (!window.db) {
+        // Fallback a data.json se Firebase non è configurato
+        fetch('data.json')
+            .then(r => r.json())
+            .then(data => { artists = data; renderTable(); })
+            .catch(() => {
+                tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;">Errore nel caricamento dei dati</td></tr>';
+            });
+        return;
     }
+
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;">⏳ Caricamento classifica...</td></tr>';
+
+    // Listener real-time: si aggiorna automaticamente se l'admin modifica i dati
+    window.db.collection('artists')
+        .orderBy('id', 'asc')
+        .onSnapshot(
+            snapshot => {
+                if (snapshot.empty) {
+                    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;">Nessun artista ancora inserito.</td></tr>';
+                    return;
+                }
+                artists = snapshot.docs.map(doc => ({ firestoreId: doc.id, ...doc.data() }));
+                renderTable();
+            },
+            error => {
+                console.error('Errore Firestore:', error);
+                tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;">❌ Errore nel caricamento dei dati</td></tr>';
+            }
+        );
 }
 
 function calculateTotal(artist) {

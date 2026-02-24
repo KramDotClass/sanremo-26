@@ -60,19 +60,24 @@ function logout() {
     document.getElementById('passwordInput').value = '';
 }
 
-async function loadData() {
-    try {
-        const timestamp = new Date().getTime(); // cache-busting
-        const response = await fetch('data.json?v=' + timestamp, {
-            cache: 'no-store'
-        });
-        artists = await response.json();
-        renderTable();
-    } catch (error) {
-        console.error('Errore nel caricamento dei dati:', error);
-        document.getElementById('tableBody').innerHTML = 
-            '<tr><td colspan="9" style="text-align: center; padding: 40px;">Errore nel caricamento dei dati</td></tr>';
+function loadData() {
+    if (!window.db) {
+        showNotification('⚠️ Firebase non configurato. Configura firebase-config.js prima di usare il pannello admin.', true);
+        return;
     }
+
+    window.db.collection('artists')
+        .orderBy('id', 'asc')
+        .onSnapshot(
+            snapshot => {
+                artists = snapshot.docs.map(doc => ({ firestoreId: doc.id, ...doc.data() }));
+                renderArtists();
+            },
+            error => {
+                console.error('Errore Firestore:', error);
+                showNotification('❌ Errore nel caricamento degli artisti da Firestore', true);
+            }
+        );
 }
 
 function calculateTotal(artist) {
@@ -98,7 +103,7 @@ function renderArtists() {
     const sorted = [...artists].sort((a, b) => calculateTotal(b) - calculateTotal(a));
 
     grid.innerHTML = sorted.map((artist, index) => `
-        <div class="artist-card" onclick="editArtist(${artist.id})">
+        <div class="artist-card" onclick="editArtist('${artist.firestoreId}')">
             <div class="position-badge">#${index + 1}</div>
             <img src="${artist.photo || 'https://via.placeholder.com/300x200'}" 
                  alt="${artist.name}"
@@ -126,14 +131,14 @@ function addNewArtist() {
     document.getElementById('editModal').style.display = 'block';
 }
 
-function editArtist(id) {
+function editArtist(firestoreId) {
     if (!isAuthenticated) return;
 
-    const artist = artists.find(a => a.id === id);
+    const artist = artists.find(a => a.firestoreId === firestoreId);
     if (!artist) return;
 
     document.getElementById('modalTitle').textContent = 'Modifica Artista';
-    document.getElementById('editId').value = artist.id;
+    document.getElementById('editId').value = artist.firestoreId; // doc ID Firestore
     document.getElementById('editName').value = artist.name || '';
     document.getElementById('editSong').value = artist.song || '';
     document.getElementById('editPhoto').value = artist.photo || '';
@@ -149,10 +154,9 @@ function editArtist(id) {
 
 function saveArtist(event) {
     event.preventDefault();
+    if (!isAuthenticated || !window.db) return;
 
-    if (!isAuthenticated) return;
-
-    const id = document.getElementById('editId').value;
+    const firestoreId = document.getElementById('editId').value; // doc ID Firestore (stringa)
     const artistData = {
         name: document.getElementById('editName').value,
         song: document.getElementById('editSong').value,
@@ -164,36 +168,55 @@ function saveArtist(event) {
         review: document.getElementById('editReview').value
     };
 
-    // Non salviamo più finalScore - viene calcolato automaticamente
+    const btn = document.querySelector('#editForm .btn-primary');
+    btn.disabled = true;
+    btn.textContent = '⏳ Salvataggio...';
 
-    if (id) {
-        // Modifica esistente
-        const index = artists.findIndex(a => a.id == id);
-        artists[index] = { ...artists[index], ...artistData };
+    let promise;
+    if (firestoreId) {
+        // Modifica artista esistente
+        promise = window.db.collection('artists').doc(firestoreId).update(artistData);
     } else {
-        // Nuovo artista - trova ID massimo e incrementa
+        // Nuovo artista: calcola il prossimo ID numerico
         const maxId = artists.length > 0 ? Math.max(...artists.map(a => a.id)) : 0;
         artistData.id = maxId + 1;
-        artists.push(artistData);
+        promise = window.db.collection('artists').add(artistData);
     }
 
-    // Mostra il JSON aggiornato
-    displayJsonForDownload();
-    renderArtists();
-    closeEditModal();
+    promise
+        .then(() => {
+            showNotification('✅ Artista salvato su Firebase!');
+            closeEditModal();
+        })
+        .catch(err => {
+            console.error('Errore salvataggio:', err);
+            showNotification('❌ Errore nel salvataggio. Riprova.', true);
+        })
+        .finally(() => {
+            btn.disabled = false;
+            btn.textContent = 'Salva';
+        });
 }
 
 function deleteArtist() {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated || !window.db) return;
 
-    const id = document.getElementById('editId').value;
-    if (!id) return;
+    const firestoreId = document.getElementById('editId').value;
+    if (!firestoreId) return;
 
-    if (confirm('Sei sicuro di voler eliminare questo artista?')) {
-        artists = artists.filter(a => a.id != id);
-        displayJsonForDownload();
-        renderArtists();
-        closeEditModal();
+    const artist = artists.find(a => a.firestoreId === firestoreId);
+    const name = artist ? artist.name : 'questo artista';
+
+    if (confirm(`Sei sicuro di voler eliminare "${name}"? L'operazione è irreversibile.`)) {
+        window.db.collection('artists').doc(firestoreId).delete()
+            .then(() => {
+                showNotification('🗑️ Artista eliminato.');
+                closeEditModal();
+            })
+            .catch(err => {
+                console.error('Errore eliminazione:', err);
+                showNotification('❌ Errore durante l\'eliminazione.', true);
+            });
     }
 }
 
@@ -201,80 +224,56 @@ function closeEditModal() {
     document.getElementById('editModal').style.display = 'none';
 }
 
-function displayJsonForDownload() {
-    if (!isAuthenticated) return;
-
-    const jsonStr = JSON.stringify(artists, null, 2);
-
-    // Mostra in console per facile copia
-    console.log('=== NUOVO JSON DA COPIARE IN data.json ===');
-    console.log(jsonStr);
-    console.log('===========================================');
-
-    // Mostra notifica
-    showNotification('Dati salvati! Vedi console (F12) per copiare il JSON aggiornato');
-}
-
-function showNotification(message) {
-    // Crea notifica temporanea
+function showNotification(message, isError = false) {
     const notification = document.createElement('div');
     notification.style.cssText = `
         position: fixed;
         top: 20px;
         right: 20px;
-        background: #059669;
+        background: ${isError ? '#dc2626' : '#059669'};
         color: white;
         padding: 15px 25px;
         border-radius: 8px;
         box-shadow: 0 4px 12px rgba(0,0,0,0.3);
         z-index: 10000;
         font-weight: 600;
+        max-width: 360px;
+        line-height: 1.4;
     `;
     notification.textContent = message;
     document.body.appendChild(notification);
-
-    setTimeout(() => {
-        notification.remove();
-    }, 5000);
+    setTimeout(() => notification.remove(), 5000);
 }
 
-function exportData() {
-    if (!isAuthenticated) return;
+// Migrazione una-tantum: carica data.json su Firestore
+async function migrateFromJson() {
+    if (!isAuthenticated || !window.db) return;
 
-    const dataStr = JSON.stringify(artists, null, 2);
-    const dataBlob = new Blob([dataStr], { type: 'application/json' });
-    const url = URL.createObjectURL(dataBlob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `data.json`;
-    link.click();
-    URL.revokeObjectURL(url);
+    if (!confirm('Questa operazione carica tutti i dati da data.json su Firestore.\nSe ci sono già artisti in Firestore, verranno aggiunti duplicati.\n\nContinuare solo se è la prima volta!')) return;
 
-    showNotification('JSON esportato! Ricaricalo su GitHub per aggiornare il sito');
-}
+    const btn = document.getElementById('btnMigrate');
+    btn.disabled = true;
+    btn.textContent = '⏳ Migrazione in corso...';
 
-function importData(event) {
-    if (!isAuthenticated) return;
+    try {
+        const response = await fetch('data.json?v=' + Date.now(), { cache: 'no-store' });
+        const data = await response.json();
 
-    const file = event.target.files[0];
-    if (!file) return;
+        const batch = window.db.batch();
+        data.forEach(artist => {
+            const ref = window.db.collection('artists').doc();
+            batch.set(ref, artist);
+        });
+        await batch.commit();
 
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        try {
-            const imported = JSON.parse(e.target.result);
-            if (Array.isArray(imported)) {
-                artists = imported;
-                renderArtists();
-                showNotification('Dati importati con successo!');
-            } else {
-                alert('Formato JSON non valido.');
-            }
-        } catch (error) {
-            alert('Errore nel leggere il file JSON.');
-        }
-    };
-    reader.readAsText(file);
+        showNotification(`✅ Migrazione completata! ${data.length} artisti caricati su Firestore.`);
+        btn.textContent = '✅ Migrazione eseguita';
+    } catch (err) {
+        console.error('Errore migrazione:', err);
+        showNotification('❌ Errore durante la migrazione: ' + err.message, true);
+        btn.disabled = false;
+        btn.textContent = '📤 Migra da data.json';
+    }
 }
 
 // Chiudi modal cliccando fuori

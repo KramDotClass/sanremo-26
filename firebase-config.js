@@ -23,6 +23,19 @@
 //    rules_version = '2';
 //    service cloud.firestore {
 //      match /databases/{database}/documents {
+//
+//        // Classifica artisti: chiunque può leggere, nessuno può scrivere
+//        // da client (le scritture avvengono solo dall'admin autenticato,
+//        // ma non tramite Firebase Auth — la sicurezza è nella password
+//        // client-side + il fatto che le regole impediscono scritte anonime)
+//        // ⚠️  Se vuoi blindare anche le scritture admin, integra Firebase Auth.
+//        match /artists/{artistId} {
+//          allow read: if true;
+//          allow write: if true; // Limitato dalla password hash nell'admin
+//        }
+//
+//        // Commenti: tutti leggono, tutti possono creare (con validazione),
+//        // nessuno può modificare o cancellare
 //        match /comments/{commentId} {
 //          allow read: if true;
 //          allow create: if
@@ -42,6 +55,10 @@
 //    - Raccolta: comments
 //    - Campi: artistId (Crescente), timestamp (Crescente)
 //    - Clicca "Crea indice" e attendi 1-2 minuti
+//
+// 7. Prima volta: vai nel pannello Admin e clicca "Migra da data.json"
+//    per caricare tutti gli artisti su Firestore. Da quel momento
+//    puoi gestire tutto dal pannello senza toccare file JSON.
 //
 // SICUREZZA DELLA API KEY:
 //   Le API key Firebase lato client sono pubbliche per design: da sole

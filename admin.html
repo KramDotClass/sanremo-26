@@ -36,16 +36,12 @@
             <main>
                 <div class="admin-actions">
                     <button onclick="addNewArtist()" class="btn-primary">+ Aggiungi Artista</button>
-                    <button onclick="exportData()" class="btn-secondary">📥 Esporta data.json</button>
-                    <label class="btn-secondary" style="cursor: pointer;">
-                        📤 Importa JSON
-                        <input type="file" id="importFile" accept=".json" style="display: none;" onchange="importData(event)">
-                    </label>
+                    <button onclick="migrateFromJson()" class="btn-secondary" id="btnMigrate">📤 Migra da data.json</button>
                 </div>
 
                 <div class="info-box">
-                    <strong>ℹ️ Come aggiornare il sito:</strong> Dopo ogni modifica, clicca "Esporta data.json" e ricarica il file su GitHub. 
-                    La posizione e il punteggio finale vengono calcolati automaticamente dalla somma dei 4 punteggi.
+                    <strong>ℹ️ Salvataggio automatico:</strong> Ogni modifica viene salvata direttamente su Firebase e diventa visibile in tempo reale a tutti i visitatori. Nessun file da esportare.
+                    <br><small style="margin-top:6px;display:block;">Il pulsante "Migra da data.json" serve una sola volta per caricare i dati iniziali su Firestore.</small>
                 </div>
 
                 <div class="artists-grid" id="artistsGrid">
@@ -121,6 +117,10 @@
         </div>
     </div>
 
+    <!-- Firebase SDK (stesso dell'index) -->
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
+    <script src="firebase-config.js"></script>
     <script src="admin.js"></script>
 </body>
 </html>
