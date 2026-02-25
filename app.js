@@ -79,7 +79,6 @@ function renderTable() {
             <td class="score">${artist.songScore || '-'}</td>
             <td class="score">${artist.lyrics || '-'}</td>
             <td class="score">${artist.cover || '-'}</td>
-            <td class="total-score">${calculateTotal(artist)}</td>
             <td class="final-score">${calculateTotal(artist)}</td>
             <td>
                 <button class="btn-review" onclick="showReview(${artist.id})">
