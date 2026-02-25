@@ -17,25 +17,38 @@
         </header>
 
         <main>
-            <div class="table-container">
-                <table id="rankingTable">
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>Artista</th>
-                            <th>Performance</th>
-                            <th>Brano</th>
-                            <th>Testo</th>
-                            <th>Cover</th>
-                            <th>Totale</th>
-                            <th>Punteggio Finale</th>
-                            <th>Azioni</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tableBody">
-                        <!-- Popolato dinamicamente -->
-                    </tbody>
-                </table>
+            <div class="tab-bar">
+                <button class="tab-btn active" id="tabRanking" onclick="switchTab('ranking')">🏆 Classifica</button>
+                <button class="tab-btn" id="tabComments" onclick="switchTab('comments')">💬 Tutti i commenti</button>
+            </div>
+
+            <div id="rankingPanel">
+                <div class="table-container">
+                    <table id="rankingTable">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Artista</th>
+                                <th>Performance</th>
+                                <th>Brano</th>
+                                <th>Testo</th>
+                                <th>Cover</th>
+                                <th>Totale</th>
+                                <th>Punteggio Finale</th>
+                                <th>Azioni</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody">
+                            <!-- Popolato dinamicamente -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="commentsPanel" style="display:none;">
+                <div id="allCommentsContainer">
+                    <!-- Popolato dinamicamente -->
+                </div>
             </div>
         </main>
     </div>

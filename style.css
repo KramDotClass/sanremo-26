@@ -157,7 +157,7 @@ nav a.active {
 }
 
 main {
-    padding: 40px;
+    padding: 0;
 }
 
 /* Info Box */
@@ -788,4 +788,140 @@ tr:hover {
     font-style: normal;
     font-size: 0.85rem;
     color: var(--text-dark);
+}
+
+/* ============================================================
+   TAB BAR
+   ============================================================ */
+
+.tab-bar {
+    display: flex;
+    gap: 8px;
+    padding: 24px 40px 0;
+    border-bottom: 2px solid var(--border);
+    margin-bottom: 0;
+}
+
+.tab-btn {
+    padding: 10px 24px;
+    border: none;
+    background: none;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-light);
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+    border-radius: 4px 4px 0 0;
+    transition: color 0.2s, border-color 0.2s, background 0.2s;
+}
+
+.tab-btn:hover {
+    color: var(--primary);
+    background: var(--bg-light);
+}
+
+.tab-btn.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+    background: var(--bg-light);
+}
+
+#rankingPanel {
+    padding: 30px 40px 40px;
+}
+
+#commentsPanel {
+    padding: 30px 40px 40px;
+}
+
+/* ============================================================
+   TUTTI I COMMENTI - gruppi per artista
+   ============================================================ */
+
+.acg-group {
+    background: var(--bg-light);
+    border-radius: 12px;
+    margin-bottom: 20px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+}
+
+.acg-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 20px;
+    background: white;
+    border-bottom: 1px solid var(--border);
+}
+
+.acg-header img {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--primary);
+    flex-shrink: 0;
+}
+
+.acg-header-info {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+}
+
+.acg-artist-name {
+    font-weight: 700;
+    font-size: 1.05rem;
+    color: var(--text-dark);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.acg-artist-song {
+    font-size: 0.85rem;
+    color: var(--text-light);
+    font-style: italic;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.acg-count {
+    background: var(--primary);
+    color: white;
+    font-size: 0.8rem;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 20px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.acg-list {
+    padding: 12px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.acg-list .comment-item {
+    background: white;
+}
+
+@media (max-width: 768px) {
+    .tab-bar {
+        padding: 16px 20px 0;
+    }
+    .tab-btn {
+        padding: 8px 14px;
+        font-size: 0.9rem;
+    }
+    #rankingPanel,
+    #commentsPanel {
+        padding: 20px;
+    }
 }

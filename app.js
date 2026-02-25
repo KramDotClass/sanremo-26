@@ -1,5 +1,6 @@
 let artists = [];
 let commentsUnsubscribe = null;
+let allCommentsUnsubscribe = null;
 
 // Carica i dati da Firestore all'avvio
 document.addEventListener('DOMContentLoaded', () => {
@@ -305,4 +306,158 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.appendChild(document.createTextNode(text));
     return div.innerHTML;
+}
+
+// ============================================================
+// TAB SWITCHING
+// ============================================================
+
+function switchTab(tab) {
+    const rankingPanel  = document.getElementById('rankingPanel');
+    const commentsPanel = document.getElementById('commentsPanel');
+    const tabRanking    = document.getElementById('tabRanking');
+    const tabComments   = document.getElementById('tabComments');
+
+    if (tab === 'ranking') {
+        rankingPanel.style.display  = 'block';
+        commentsPanel.style.display = 'none';
+        tabRanking.classList.add('active');
+        tabComments.classList.remove('active');
+        if (allCommentsUnsubscribe) {
+            allCommentsUnsubscribe();
+            allCommentsUnsubscribe = null;
+        }
+    } else {
+        rankingPanel.style.display  = 'none';
+        commentsPanel.style.display = 'block';
+        tabRanking.classList.remove('active');
+        tabComments.classList.add('active');
+        loadAllComments();
+    }
+}
+
+function loadAllComments() {
+    const container = document.getElementById('allCommentsContainer');
+    if (!container) return;
+
+    if (!window.db) {
+        container.innerHTML = '<div class="no-comments" style="padding:40px;text-align:center">⚠️ Sistema commenti non configurato.</div>';
+        return;
+    }
+
+    container.innerHTML = '<div class="comments-loading">&#8987; Caricamento commenti...</div>';
+
+    if (allCommentsUnsubscribe) {
+        allCommentsUnsubscribe();
+    }
+
+    allCommentsUnsubscribe = window.db
+        .collection('comments')
+        .orderBy('timestamp', 'asc')
+        .onSnapshot(
+            snapshot => {
+                if (snapshot.empty) {
+                    container.innerHTML = '<div class="no-comments" style="padding:40px;text-align:center">Nessun commento ancora presente. Sii il primo! 🎤</div>';
+                    return;
+                }
+
+                // Raggruppa per artistId
+                const grouped = {};
+                snapshot.docs.forEach(doc => {
+                    const c = doc.data();
+                    if (!grouped[c.artistId]) grouped[c.artistId] = [];
+                    grouped[c.artistId].push(c);
+                });
+
+                // Ordina i gruppi seguendo la classifica attuale
+                const sorted = [...artists].sort((a, b) => calculateTotal(b) - calculateTotal(a));
+
+                let html = '';
+                let hasAny = false;
+
+                sorted.forEach(artist => {
+                    const comments = grouped[artist.id];
+                    if (!comments || comments.length === 0) return;
+                    hasAny = true;
+
+                    const count = comments.length;
+                    html += `
+                        <div class="acg-group">
+                            <div class="acg-header">
+                                <img src="${artist.photo || 'https://via.placeholder.com/50'}"
+                                     alt="${escapeHtml(artist.name)}"
+                                     onerror="this.src='https://via.placeholder.com/50'">
+                                <div class="acg-header-info">
+                                    <span class="acg-artist-name">${escapeHtml(artist.name)}</span>
+                                    ${artist.song ? `<span class="acg-artist-song">${escapeHtml(artist.song)}</span>` : ''}
+                                </div>
+                                <span class="acg-count">${count} comment${count !== 1 ? 'i' : 'o'}</span>
+                            </div>
+                            <div class="acg-list">
+                                ${comments.map(c => {
+                                    const date = c.timestamp
+                                        ? c.timestamp.toDate().toLocaleString('it-IT', {
+                                              day: '2-digit', month: '2-digit', year: 'numeric',
+                                              hour: '2-digit', minute: '2-digit'
+                                          })
+                                        : '';
+                                    return `
+                                        <div class="comment-item">
+                                            <div class="comment-header">
+                                                <span class="comment-author">👤 ${escapeHtml(c.authorName)}</span>
+                                                <span class="comment-date">${date}</span>
+                                            </div>
+                                            <div class="comment-body">${escapeHtml(c.text)}</div>
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        </div>
+                    `;
+                });
+
+                // Artisti senza match in classifica (es. id non trovato)
+                Object.keys(grouped).forEach(artistId => {
+                    const id = parseInt(artistId);
+                    if (sorted.find(a => a.id === id)) return;
+                    const comments = grouped[artistId];
+                    const count = comments.length;
+                    html += `
+                        <div class="acg-group">
+                            <div class="acg-header">
+                                <div class="acg-header-info">
+                                    <span class="acg-artist-name">Artista #${escapeHtml(artistId)}</span>
+                                </div>
+                                <span class="acg-count">${count} comment${count !== 1 ? 'i' : 'o'}</span>
+                            </div>
+                            <div class="acg-list">
+                                ${comments.map(c => {
+                                    const date = c.timestamp
+                                        ? c.timestamp.toDate().toLocaleString('it-IT', {
+                                              day: '2-digit', month: '2-digit', year: 'numeric',
+                                              hour: '2-digit', minute: '2-digit'
+                                          })
+                                        : '';
+                                    return `
+                                        <div class="comment-item">
+                                            <div class="comment-header">
+                                                <span class="comment-author">👤 ${escapeHtml(c.authorName)}</span>
+                                                <span class="comment-date">${date}</span>
+                                            </div>
+                                            <div class="comment-body">${escapeHtml(c.text)}</div>
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        </div>
+                    `;
+                });
+
+                container.innerHTML = hasAny ? html : '<div class="no-comments" style="padding:40px;text-align:center">Nessun commento ancora presente. Sii il primo! 🎤</div>';
+            },
+            error => {
+                console.error('Errore caricamento tutti i commenti:', error);
+                container.innerHTML = '<div class="no-comments" style="padding:40px;text-align:center">❌ Errore nel caricamento dei commenti.</div>';
+            }
+        );
 }
