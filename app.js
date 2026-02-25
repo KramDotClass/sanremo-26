@@ -16,12 +16,12 @@ function loadData() {
             .then(r => r.json())
             .then(data => { artists = data; renderTable(); })
             .catch(() => {
-                tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;">Errore nel caricamento dei dati</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px;">Errore nel caricamento dei dati</td></tr>';
             });
         return;
     }
 
-    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;">⏳ Caricamento classifica...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px;">⏳ Caricamento classifica...</td></tr>';
 
     // Listener real-time: si aggiorna automaticamente se l'admin modifica i dati
     window.db.collection('artists')
@@ -29,7 +29,7 @@ function loadData() {
         .onSnapshot(
             snapshot => {
                 if (snapshot.empty) {
-                    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;">Nessun artista ancora inserito.</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px;">Nessun artista ancora inserito.</td></tr>';
                     return;
                 }
                 artists = snapshot.docs.map(doc => ({ firestoreId: doc.id, ...doc.data() }));
@@ -37,7 +37,7 @@ function loadData() {
             },
             error => {
                 console.error('Errore Firestore:', error);
-                tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;">❌ Errore nel caricamento dei dati</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px;">❌ Errore nel caricamento dei dati</td></tr>';
             }
         );
 }
@@ -47,7 +47,8 @@ function calculateTotal(artist) {
         parseFloat(artist.performance || 0) +
         parseFloat(artist.songScore || 0) +
         parseFloat(artist.lyrics || 0) +
-        parseFloat(artist.cover || 0)
+        parseFloat(artist.cover || 0) +
+        parseFloat(artist.pubblicoScore || 0)
     ).toFixed(1);
 }
 
@@ -79,6 +80,7 @@ function renderTable() {
             <td class="score">${artist.songScore || '-'}</td>
             <td class="score">${artist.lyrics || '-'}</td>
             <td class="score">${artist.cover || '-'}</td>
+            <td class="score">${artist.pubblicoScore !== undefined && artist.pubblicoScore !== null && artist.pubblicoScore !== '' ? artist.pubblicoScore : '-'}</td>
             <td class="final-score">${calculateTotal(artist)}</td>
             <td>
                 <button class="btn-review" onclick="showReview(${artist.id})">

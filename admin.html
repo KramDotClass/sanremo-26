@@ -37,6 +37,8 @@
                 <div class="admin-actions">
                     <button onclick="addNewArtist()" class="btn-primary">+ Aggiungi Artista</button>
                     <button onclick="migrateFromJson()" class="btn-secondary" id="btnMigrate">📤 Migra da data.json</button>
+                    <button onclick="showPublicVotes()" class="btn-secondary">📊 Consulta televoto</button>
+                    <button onclick="applyPublicVotes()" class="btn-primary">🔄 Aggiorna con i voti del pubblico</button>
                 </div>
 
                 <div class="info-box">
@@ -113,6 +115,21 @@
                         <button type="button" onclick="deleteArtist()" class="btn-danger">Elimina</button>
                     </div>
                 </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: voti pubblici televoto -->
+    <div id="publicVotesModal" class="modal">
+        <div class="modal-content" style="max-width:600px;">
+            <span class="close" onclick="closePublicVotesModal()">&times;</span>
+            <h2>📊 Voti del pubblico (Televoto)</h2>
+            <p style="color:var(--text-light);font-size:0.9rem;margin-bottom:16px;">
+                Media dei voti espressi dai visitatori, per artista.<br>
+                Ordinati per media decrescente.
+            </p>
+            <div id="publicVotesBody" class="votes-table-wrap">
+                <div class="votes-no-data">⏳ Caricamento...</div>
             </div>
         </div>
     </div>

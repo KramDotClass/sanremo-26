@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Televoto - Sanremo 2026</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="televoto-wrapper">
+
+        <header class="televoto-header">
+            <a href="index.html" class="back-link">← Classifica</a>
+            <h1>📺 Televoto</h1>
+            <p class="televoto-subtitle">Esprimi il tuo voto per ogni artista!</p>
+        </header>
+
+        <!-- Stato: caricamento -->
+        <div id="tvLoading" class="tv-state-box">
+            <div class="tv-loading-spinner">⏳</div>
+            <p>Caricamento artisti...</p>
+        </div>
+
+        <!-- Stato: tutti votati -->
+        <div id="tvCompleted" class="tv-state-box" style="display:none;">
+            <div class="tv-completed-icon">🎉</div>
+            <h2>Hai votato tutti gli artisti!</h2>
+            <p>Grazie per aver partecipato al televoto di Sanremo 2026.<br>I tuoi voti sono stati registrati.</p>
+            <a href="index.html" class="btn-primary tv-home-link">📊 Vai alla classifica</a>
+        </div>
+
+        <!-- Stato: interfaccia di voto -->
+        <div id="tvVoting" style="display:none;">
+
+            <!-- Barra avanzamento -->
+            <div class="tv-progress-wrap">
+                <div class="tv-progress-text" id="tvProgressText">Artista 1 di 30</div>
+                <div class="tv-progress-bar">
+                    <div class="tv-progress-fill" id="tvProgressFill" style="width:0%"></div>
+                </div>
+            </div>
+
+            <!-- Card artista -->
+            <div class="tv-artist-card">
+                <img id="tvArtistPhoto" src="" alt=""
+                     onerror="this.src='https://via.placeholder.com/160'">
+                <h2 id="tvArtistName">Nome Artista</h2>
+                <p class="tv-artist-song" id="tvArtistSong"></p>
+            </div>
+
+            <!-- Selezione voto -->
+            <div class="tv-vote-section">
+                <p class="tv-vote-label">Esprimi il tuo voto da 0 a 10:</p>
+                <div class="tv-vote-buttons" id="tvVoteButtons">
+                    <!-- generato da JS -->
+                </div>
+                <div class="tv-selected-display" id="tvSelectedDisplay"></div>
+            </div>
+
+            <!-- Bottone avanti -->
+            <button class="btn-primary tv-next-btn" id="tvNextBtn" onclick="submitVote()" disabled>
+                Avanti →
+            </button>
+
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    <script src="voto.js"></script>
+</body>
+</html>

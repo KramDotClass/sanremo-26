@@ -925,3 +925,316 @@ tr:hover {
         padding: 20px;
     }
 }
+
+/* ============================================================
+   TELEVOTO
+   ============================================================ */
+
+.televoto-wrapper {
+    max-width: 560px;
+    margin: 0 auto;
+    padding: 20px 16px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.televoto-header {
+    background: white;
+    border-radius: 16px;
+    padding: 20px 20px 16px;
+    text-align: center;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    position: relative;
+}
+
+.televoto-header h1 {
+    color: var(--primary);
+    font-size: 1.8rem;
+    margin: 0 0 4px;
+}
+
+.televoto-subtitle {
+    color: var(--text-light);
+    font-size: 0.9rem;
+    margin: 0;
+}
+
+.televoto-header .back-link {
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.85rem;
+    color: var(--text-light);
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.televoto-header .back-link:hover {
+    color: var(--primary);
+}
+
+/* Stato generico (loading / completed) */
+.tv-state-box {
+    background: white;
+    border-radius: 16px;
+    padding: 50px 30px;
+    text-align: center;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+}
+
+.tv-loading-spinner {
+    font-size: 2.5rem;
+    margin-bottom: 12px;
+}
+
+.tv-completed-icon {
+    font-size: 4rem;
+    margin-bottom: 14px;
+}
+
+.tv-state-box h2 {
+    color: var(--primary);
+    margin-bottom: 10px;
+}
+
+.tv-home-link {
+    display: inline-block;
+    margin-top: 22px;
+    text-decoration: none;
+    padding: 14px 28px;
+    font-size: 1rem;
+}
+
+/* Barra progresso */
+.tv-progress-wrap {
+    background: white;
+    border-radius: 12px;
+    padding: 14px 18px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.tv-progress-text {
+    font-size: 0.88rem;
+    color: var(--text-light);
+    margin-bottom: 8px;
+    text-align: center;
+}
+
+.tv-progress-bar {
+    height: 8px;
+    background: var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.tv-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #667eea, #764ba2);
+    border-radius: 4px;
+    transition: width 0.5s ease;
+}
+
+/* Card artista */
+.tv-artist-card {
+    background: white;
+    border-radius: 20px;
+    padding: 30px 20px 24px;
+    text-align: center;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+}
+
+.tv-artist-card img {
+    width: 150px;
+    height: 150px;
+    object-fit: cover;
+    border-radius: 50%;
+    border: 4px solid var(--primary);
+    margin-bottom: 14px;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.tv-artist-card h2 {
+    font-size: 1.55rem;
+    color: var(--text-dark);
+    margin-bottom: 4px;
+}
+
+.tv-artist-song {
+    color: var(--text-light);
+    font-style: italic;
+    font-size: 0.95rem;
+}
+
+/* Sezione voto */
+.tv-vote-section {
+    background: white;
+    border-radius: 16px;
+    padding: 22px 18px 18px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    text-align: center;
+}
+
+.tv-vote-label {
+    font-weight: 600;
+    color: var(--text-dark);
+    margin-bottom: 14px;
+    font-size: 0.95rem;
+}
+
+.tv-vote-buttons {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 8px;
+    margin-bottom: 14px;
+}
+
+.tv-vote-btn {
+    padding: 13px 0;
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    background: var(--bg-light);
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.18s;
+    color: var(--text-dark);
+}
+
+.tv-vote-btn:hover {
+    border-color: var(--primary);
+    background: #e0e7ff;
+    transform: translateY(-2px);
+}
+
+.tv-vote-btn.selected {
+    border-color: var(--primary);
+    background: var(--primary);
+    color: white;
+    transform: scale(1.12);
+    box-shadow: 0 4px 14px rgba(30,64,175,0.4);
+}
+
+.tv-selected-display {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--primary);
+    min-height: 1.8em;
+}
+
+/* Bottone avanti */
+.tv-next-btn {
+    width: 100%;
+    padding: 18px;
+    font-size: 1.15rem;
+    border-radius: 12px;
+    margin-top: 4px;
+    transition: opacity 0.2s;
+}
+
+.tv-next-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+/* ============================================================
+   ADMIN – Vista voti pubblici (modal televoto)
+   ============================================================ */
+
+.votes-table-wrap {
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+.votes-artist-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.votes-artist-row:last-child {
+    border-bottom: none;
+}
+
+.votes-artist-photo {
+    width: 48px;
+    height: 48px;
+    object-fit: cover;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.votes-artist-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.votes-artist-name {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--text-dark);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.votes-artist-sub {
+    font-size: 0.8rem;
+    color: var(--text-light);
+    margin-top: 1px;
+}
+
+.votes-bar-wrap {
+    width: 100px;
+    flex-shrink: 0;
+}
+
+.votes-bar {
+    height: 7px;
+    background: var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 3px;
+}
+
+.votes-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #667eea, #764ba2);
+    border-radius: 4px;
+    transition: width 0.4s ease;
+}
+
+.votes-score-big {
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: var(--primary);
+    min-width: 42px;
+    text-align: right;
+    flex-shrink: 0;
+}
+
+.votes-no-data {
+    text-align: center;
+    color: var(--text-light);
+    padding: 30px;
+    font-style: italic;
+}
+
+@media (max-width: 480px) {
+    .tv-vote-buttons {
+        grid-template-columns: repeat(4, 1fr);
+    }
+    .televoto-header h1 {
+        font-size: 1.5rem;
+    }
+    .tv-artist-card img {
+        width: 120px;
+        height: 120px;
+    }
+}

@@ -85,7 +85,8 @@ function calculateTotal(artist) {
         parseFloat(artist.performance || 0) +
         parseFloat(artist.songScore || 0) +
         parseFloat(artist.lyrics || 0) +
-        parseFloat(artist.cover || 0)
+        parseFloat(artist.cover || 0) +
+        parseFloat(artist.pubblicoScore || 0)
     ).toFixed(1);
 }
 
@@ -115,6 +116,9 @@ function renderArtists() {
                 <div>Brano: <strong>${artist.songScore || 0}</strong></div>
                 <div>Testo: <strong>${artist.lyrics || 0}</strong></div>
                 <div>Cover: <strong>${artist.cover || 0}</strong></div>
+                ${artist.pubblicoScore !== undefined && artist.pubblicoScore !== null
+                    ? `<div>Pubblico: <strong>${artist.pubblicoScore}</strong></div>`
+                    : ''}
             </div>
             <p style="margin-top: 10px; color: var(--primary);"><strong>Totale/Finale: ${calculateTotal(artist)}</strong></p>
         </div>
@@ -278,9 +282,152 @@ async function migrateFromJson() {
 
 // Chiudi modal cliccando fuori
 window.onclick = function(event) {
-    const modal = document.getElementById('editModal');
-    if (event.target === modal) {
-        closeEditModal();
+    const editModal = document.getElementById('editModal');
+    const pvModal   = document.getElementById('publicVotesModal');
+    if (event.target === editModal) closeEditModal();
+    if (event.target === pvModal)   closePublicVotesModal();
+}
+
+// ============================================================
+// TELEVOTO – Voti del pubblico
+// ============================================================
+
+function closePublicVotesModal() {
+    document.getElementById('publicVotesModal').style.display = 'none';
+}
+
+/**
+ * Legge la collezione `televoto`, raggruppa per artista e mostra
+ * la media dei voti con una barra visuale.
+ */
+function showPublicVotes() {
+    if (!isAuthenticated || !window.db) return;
+
+    const modal = document.getElementById('publicVotesModal');
+    const body  = document.getElementById('publicVotesBody');
+    body.innerHTML = '<div class="votes-no-data">⏳ Caricamento voti...</div>';
+    modal.style.display = 'block';
+
+    window.db.collection('televoto').get()
+        .then(snapshot => {
+            if (snapshot.empty) {
+                body.innerHTML = '<div class="votes-no-data">Nessun voto registrato ancora.</div>';
+                return;
+            }
+
+            // Raggruppa i voti per artistId
+            const grouped = {};
+            snapshot.docs.forEach(doc => {
+                const d = doc.data();
+                if (!grouped[d.artistId]) {
+                    grouped[d.artistId] = { name: d.artistName, votes: [] };
+                }
+                grouped[d.artistId].votes.push(d.vote);
+            });
+
+            // Calcola medie e ordina per media decrescente
+            const rows = Object.entries(grouped).map(([idStr, data]) => {
+                const artistId = parseInt(idStr);
+                const sum = data.votes.reduce((a, v) => a + v, 0);
+                const avg = sum / data.votes.length;
+                const artist = artists.find(a => a.id === artistId);
+                return {
+                    artistId,
+                    name: (artist && artist.name) || data.name || `Artista #${artistId}`,
+                    photo: (artist && artist.photo) || '',
+                    song: (artist && artist.song) || '',
+                    avg: parseFloat(avg.toFixed(2)),
+                    count: data.votes.length
+                };
+            }).sort((a, b) => b.avg - a.avg);
+
+            body.innerHTML = rows.map(r => `
+                <div class="votes-artist-row">
+                    <img class="votes-artist-photo"
+                         src="${r.photo || 'https://via.placeholder.com/48'}"
+                         alt="${r.name}"
+                         onerror="this.src='https://via.placeholder.com/48'">
+                    <div class="votes-artist-info">
+                        <div class="votes-artist-name">${r.name}</div>
+                        <div class="votes-artist-sub">${r.song ? r.song + ' · ' : ''}${r.count} vot${r.count !== 1 ? 'i' : 'o'}</div>
+                    </div>
+                    <div class="votes-bar-wrap">
+                        <div class="votes-bar">
+                            <div class="votes-bar-fill" style="width:${(r.avg / 10) * 100}%"></div>
+                        </div>
+                        <div style="font-size:0.75rem;color:var(--text-light);text-align:right;">${r.avg}/10</div>
+                    </div>
+                    <div class="votes-score-big">${r.avg.toFixed(1)}</div>
+                </div>
+            `).join('');
+        })
+        .catch(err => {
+            console.error('Errore lettura televoto:', err);
+            body.innerHTML = '<div class="votes-no-data">❌ Errore nel caricamento dei voti.</div>';
+        });
+}
+
+/**
+ * Legge i voti del pubblico, calcola la media per ogni artista
+ * e aggiorna il campo `pubblicoScore` su Firestore.
+ * La classifica pubblica (index.html) includerà automaticamente
+ * il nuovo punteggio nel totale.
+ */
+async function applyPublicVotes() {
+    if (!isAuthenticated || !window.db) return;
+
+    if (!confirm(
+        'Questa operazione calcola la media dei voti del pubblico per ogni artista\n' +
+        'e aggiorna il campo "Pubblico" in Firestore.\n\n' +
+        'Il punteggio totale in classifica verrà ricalcolato automaticamente.\n\n' +
+        'Continuare?'
+    )) return;
+
+    const btn = [...document.querySelectorAll('.admin-actions button')]
+        .find(b => b.textContent.includes('Aggiorna con i voti del pubblico'));
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ Aggiornamento...'; }
+
+    try {
+        const snapshot = await window.db.collection('televoto').get();
+
+        if (snapshot.empty) {
+            showNotification('⚠️ Nessun voto del pubblico trovato.', true);
+            return;
+        }
+
+        // Raggruppa per artistId
+        const grouped = {};
+        snapshot.docs.forEach(doc => {
+            const d = doc.data();
+            if (!grouped[d.artistId]) grouped[d.artistId] = [];
+            grouped[d.artistId].push(d.vote);
+        });
+
+        // Calcola medie e aggiorna ogni artista in batch
+        const batch = window.db.batch();
+        let updated = 0;
+
+        Object.entries(grouped).forEach(([idStr, votes]) => {
+            const artistId = parseInt(idStr);
+            const artist = artists.find(a => a.id === artistId);
+            if (!artist || !artist.firestoreId) return;
+
+            const avg = votes.reduce((a, v) => a + v, 0) / votes.length;
+            const ref = window.db.collection('artists').doc(artist.firestoreId);
+            batch.update(ref, { pubblicoScore: parseFloat(avg.toFixed(2)) });
+            updated++;
+        });
+
+        await batch.commit();
+
+        showNotification(
+            `✅ Aggiornamento completato! Punteggio pubblico applicato a ${updated} artist${updated !== 1 ? 'i' : 'a'}.`
+        );
+    } catch (err) {
+        console.error('Errore applyPublicVotes:', err);
+        showNotification('❌ Errore durante l\'aggiornamento: ' + err.message, true);
+    } finally {
+        if (btn) { btn.disabled = false; btn.textContent = '🔄 Aggiorna con i voti del pubblico'; }
     }
 }
 
