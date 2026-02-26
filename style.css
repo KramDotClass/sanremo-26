@@ -466,6 +466,168 @@ tr:hover {
     border-radius: 6px;
 }
 
+/* ── Ranking pubblico (card responsive) ─────────────────────── */
+
+.ranking-grid {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    padding: 0;
+}
+
+.ranking-card {
+    cursor: pointer;
+    padding: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.ranking-card img {
+    width: 100%;
+    height: 220px;
+    object-fit: cover;
+    border-radius: 0;
+    margin-bottom: 0;
+    display: block;
+}
+
+.ranking-card-body {
+    padding: 16px 18px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    flex: 1;
+}
+
+.ranking-card h3 {
+    font-size: 1.15rem;
+    margin: 0;
+    padding-right: 42px; /* spazio per badge */
+}
+
+.ranking-song {
+    color: var(--text-light);
+    font-style: italic;
+    font-size: 0.88rem;
+    margin: 0;
+}
+
+/* Badge posizione */
+.ranking-pos {
+    top: 12px;
+    right: 12px;
+    font-size: 1.1rem;
+    width: 36px;
+    height: 36px;
+}
+
+/* Griglia punteggi con label */
+.ranking-scores {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 7px;
+    font-size: 0.82rem;
+    margin-top: 2px;
+}
+
+.ranking-scores div {
+    background: var(--bg-light);
+    border-radius: 8px;
+    padding: 7px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.ranking-scores div span {
+    color: var(--text-light);
+    font-size: 0.75rem;
+}
+
+.ranking-scores div strong {
+    font-size: 1.1rem;
+    color: var(--text-dark);
+}
+
+.score-pubblico {
+    grid-column: 1 / -1;    /* occupa tutta la riga */
+    background: #ede9fe !important;
+    border: 1px solid #c4b5fd;
+}
+
+.score-pubblico span {
+    color: #7c3aed !important;
+}
+
+.score-pubblico strong {
+    color: #5b21b6 !important;
+}
+
+/* Totale */
+.ranking-total {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: linear-gradient(135deg, #1e40af 0%, #7c3aed 100%);
+    border-radius: 10px;
+    padding: 10px 14px;
+    color: white;
+}
+
+.ranking-total span {
+    font-size: 0.82rem;
+    opacity: 0.85;
+}
+
+.ranking-total strong {
+    font-size: 1.6rem;
+    font-weight: 900;
+    letter-spacing: -0.5px;
+}
+
+/* Bottone */
+.ranking-btn {
+    width: 100%;
+    padding: 11px;
+    font-size: 0.9rem;
+    border-radius: 8px;
+    margin-top: auto;
+}
+
+/* Testo vuoto/caricamento */
+.ranking-empty {
+    text-align: center;
+    color: var(--text-light);
+    padding: 50px 20px;
+    font-size: 1.05rem;
+    grid-column: 1 / -1;
+}
+
+/* Responsive: adattamenti per schermi piccoli */
+@media (max-width: 600px) {
+    .ranking-card img {
+        height: 180px;
+    }
+
+    .ranking-card h3 {
+        font-size: 1rem;
+        padding-right: 36px;
+    }
+
+    .ranking-scores {
+        font-size: 0.8rem;
+    }
+
+    .ranking-total strong {
+        font-size: 1.4rem;
+    }
+}
+
+@media (max-width: 380px) {
+    .ranking-card img {
+        height: 150px;
+    }
+}
+
 /* Form */
 .form-group {
     margin-bottom: 20px;
@@ -610,16 +772,35 @@ tr:hover {
 }
 
 @media (max-width: 768px) {
+    body {
+        padding: 8px;
+    }
+
     .login-box {
         padding: 30px;
     }
 
+    header {
+        padding: 20px 16px;
+    }
+
     header h1 {
-        font-size: 1.8rem;
+        font-size: 1.5rem;
+        margin-bottom: 12px;
+    }
+
+    nav {
+        gap: 6px;
+        flex-wrap: wrap;
+    }
+
+    nav a {
+        padding: 7px 12px;
+        font-size: 0.88rem;
     }
 
     main {
-        padding: 20px;
+        padding: 16px;
     }
 
     .form-row {
@@ -835,6 +1016,18 @@ tr:hover {
     padding: 30px 40px 40px;
 }
 
+@media (max-width: 768px) {
+    /* su mobile "main" ha già padding:20px (regola globale),
+       i pannelli non ne aggiungono un secondo strato */
+    #rankingPanel,
+    #commentsPanel {
+        padding: 0;
+    }
+    .tab-bar {
+        padding: 16px 16px 0;
+    }
+}
+
 /* ============================================================
    TUTTI I COMMENTI - gruppi per artista
    ============================================================ */
@@ -910,20 +1103,6 @@ tr:hover {
 
 .acg-list .comment-item {
     background: white;
-}
-
-@media (max-width: 768px) {
-    .tab-bar {
-        padding: 16px 20px 0;
-    }
-    .tab-btn {
-        padding: 8px 14px;
-        font-size: 0.9rem;
-    }
-    #rankingPanel,
-    #commentsPanel {
-        padding: 20px;
-    }
 }
 
 /* ============================================================

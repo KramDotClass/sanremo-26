@@ -8,20 +8,20 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function loadData() {
-    const tbody = document.getElementById('tableBody');
+    const grid = document.getElementById('rankingGrid');
 
     if (!window.db) {
         // Fallback a data.json se Firebase non è configurato
         fetch('data.json')
             .then(r => r.json())
-            .then(data => { artists = data; renderTable(); })
+            .then(data => { artists = data; renderCards(); })
             .catch(() => {
-                tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px;">Errore nel caricamento dei dati</td></tr>';
+                grid.innerHTML = '<p class="ranking-empty">Errore nel caricamento dei dati</p>';
             });
         return;
     }
 
-    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px;">⏳ Caricamento classifica...</td></tr>';
+    grid.innerHTML = '<p class="ranking-empty">⏳ Caricamento classifica...</p>';
 
     // Listener real-time: si aggiorna automaticamente se l'admin modifica i dati
     window.db.collection('artists')
@@ -29,15 +29,15 @@ function loadData() {
         .onSnapshot(
             snapshot => {
                 if (snapshot.empty) {
-                    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px;">Nessun artista ancora inserito.</td></tr>';
+                    grid.innerHTML = '<p class="ranking-empty">Nessun artista ancora inserito.</p>';
                     return;
                 }
                 artists = snapshot.docs.map(doc => ({ firestoreId: doc.id, ...doc.data() }));
-                renderTable();
+                renderCards();
             },
             error => {
                 console.error('Errore Firestore:', error);
-                tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px;">❌ Errore nel caricamento dei dati</td></tr>';
+                grid.innerHTML = '<p class="ranking-empty">❌ Errore nel caricamento dei dati</p>';
             }
         );
 }
@@ -52,43 +52,53 @@ function calculateTotal(artist) {
     ).toFixed(1);
 }
 
-function renderTable() {
-    const tbody = document.getElementById('tableBody');
+function renderCards() {
+    const grid = document.getElementById('rankingGrid');
 
     // Ordina per totale decrescente (posizione automatica)
-    const sorted = [...artists].sort((a, b) => {
-        return calculateTotal(b) - calculateTotal(a);
-    });
+    const sorted = [...artists].sort((a, b) => calculateTotal(b) - calculateTotal(a));
 
-    tbody.innerHTML = sorted.map((artist, index) => `
-        <tr>
-            <td class="position">${index + 1}</td>
-            <td>
-                <div class="artist-cell">
-                    <img src="${artist.photo || 'https://via.placeholder.com/60'}" 
-                         alt="${artist.name}" 
-                         class="artist-photo clickable-image"
-                         onclick="openImageModal('${artist.photo || 'https://via.placeholder.com/60'}', '${artist.name}')"
-                         onerror="this.src='https://via.placeholder.com/60'">
-                    <div class="artist-info">
-                        <span class="artist-name">${artist.name}</span>
-                        ${artist.song ? `<span class="artist-song">${artist.song}</span>` : ''}
-                    </div>
+    if (sorted.length === 0) {
+        grid.innerHTML = '<p class="ranking-empty">Nessun artista ancora inserito.</p>';
+        return;
+    }
+
+    const medalMap = { 1: '🥇', 2: '🥈', 3: '🥉' };
+
+    grid.innerHTML = sorted.map((artist, index) => {
+        const pos = index + 1;
+        const posLabel = medalMap[pos] || `#${pos}`;
+        const hasPublico = artist.pubblicoScore !== undefined &&
+                           artist.pubblicoScore !== null &&
+                           artist.pubblicoScore !== '';
+
+        return `
+        <div class="artist-card ranking-card" onclick="showReview(${artist.id})">
+            <div class="position-badge ranking-pos">${posLabel}</div>
+            <img src="${artist.photo || 'https://via.placeholder.com/300x200'}"
+                 alt="${artist.name}"
+                 onerror="this.src='https://via.placeholder.com/300x200'">
+            <div class="ranking-card-body">
+                <h3>${artist.name}</h3>
+                ${artist.song ? `<p class="ranking-song">🎵 ${artist.song}</p>` : ''}
+                <div class="scores ranking-scores">
+                    <div><span>🎤 Perf.</span><strong>${artist.performance || '-'}</strong></div>
+                    <div><span>🎵 Brano</span><strong>${artist.songScore || '-'}</strong></div>
+                    <div><span>📝 Testo</span><strong>${artist.lyrics || '-'}</strong></div>
+                    <div><span>🎸 Cover</span><strong>${artist.cover || '-'}</strong></div>
+                    ${hasPublico ? `<div class="score-pubblico"><span>📺 Pubblico</span><strong>${artist.pubblicoScore}</strong></div>` : ''}
                 </div>
-            </td>
-            <td class="score">${artist.performance || '-'}</td>
-            <td class="score">${artist.songScore || '-'}</td>
-            <td class="score">${artist.lyrics || '-'}</td>
-            <td class="score">${artist.cover || '-'}</td>
-            <td class="score">${artist.pubblicoScore !== undefined && artist.pubblicoScore !== null && artist.pubblicoScore !== '' ? artist.pubblicoScore : '-'}</td>
-            <td class="final-score">${calculateTotal(artist)}</td>
-            <td>
-                <button class="btn-review" onclick="showReview(${artist.id})">
-                    📝 Valutazione
+                <div class="ranking-total">
+                    <span>Punteggio Totale</span>
+                    <strong>${calculateTotal(artist)}</strong>
+                </div>
+                <button class="btn-review ranking-btn"
+                        onclick="event.stopPropagation(); showReview(${artist.id})">
+                    📝 Valutazione e commenti
                 </button>
-            </td>
-        </tr>
-    `).join('');
+            </div>
+        </div>`;
+    }).join('');
 }
 
 function showReview(id) {
