@@ -1131,8 +1131,34 @@ tr:hover {
 }
 
 /* ============================================================
-   TUTTI I COMMENTI - gruppi per artista
+   TUTTI I COMMENTI - gruppi per serata e per artista
    ============================================================ */
+
+.acg-serata-section {
+    margin-bottom: 32px;
+}
+
+.acg-serata-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--primary);
+    padding: 12px 4px 10px;
+    margin: 0 0 12px 0;
+    border-bottom: 2px solid var(--primary-light, #c7d2fe);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.acg-serata-count {
+    font-size: 0.78rem;
+    font-weight: 600;
+    background: var(--primary-light, #e0e7ff);
+    color: var(--primary);
+    padding: 3px 10px;
+    border-radius: 20px;
+}
 
 .acg-group {
     background: var(--bg-light);

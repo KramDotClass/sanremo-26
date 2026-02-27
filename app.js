@@ -1,6 +1,13 @@
 let artists = [];
 let commentsUnsubscribe = null;
 let allCommentsUnsubscribe = null;
+let activeTab = 's1';
+
+const SERATA_LABELS = {
+    s1: '🎭 Serate 1–3',
+    s2: '🎸 Serata Cover',
+    s3: '🏆 Finale'
+};
 
 // Carica i dati da Firestore all'avvio
 document.addEventListener('DOMContentLoaded', () => {
@@ -173,6 +180,8 @@ function switchTab(tab) {
         if (t) t.classList.toggle('active', key === tab);
     });
 
+    if (tab !== 'comments') activeTab = tab;
+
     if (tab === 'comments') {
         loadAllComments();
     } else {
@@ -234,14 +243,14 @@ function showReview(id) {
         </div>` : ''}
 
         <div class="comments-section">
-            <h3>💬 Commenti dei visitatori</h3>
+            <h3>💬 Commenti — ${SERATA_LABELS[activeTab] || ''}</h3>
             <div class="comment-form">
                 <input type="text" id="commentName" class="comment-input"
                     placeholder="Il tuo nome (es. Mario Rossi)..." maxlength="50" value="${savedName}">
                 <textarea id="commentText" class="comment-textarea"
-                    placeholder="Lascia un commento su questo artista..."
+                    placeholder="Lascia un commento su questo artista in ${SERATA_LABELS[activeTab] || 'questa serata'}..."
                     maxlength="500" rows="3"></textarea>
-                <button class="btn-comment" onclick="submitComment(${artist.id})">✉️ Pubblica commento</button>
+                <button class="btn-comment" onclick="submitComment(${artist.id}, '${activeTab}')">✉️ Pubblica commento</button>
             </div>
             <div id="commentsList" class="comments-list">
                 <div class="comments-loading">⏳ Caricamento commenti...</div>
@@ -250,7 +259,7 @@ function showReview(id) {
     `;
 
     modal.style.display = 'block';
-    loadComments(artist.id);
+    loadComments(artist.id, activeTab);
 }
 
 function closeModal() {
@@ -290,7 +299,7 @@ window.onclick = function(event) {
 // SISTEMA DI COMMENTI (Firebase Firestore)
 // ============================================================
 
-function loadComments(artistId) {
+function loadComments(artistId, serata) {
     // Annulla il listener precedente se esiste
     if (commentsUnsubscribe) {
         commentsUnsubscribe();
@@ -314,12 +323,17 @@ function loadComments(artistId) {
                 const list = document.getElementById('commentsList');
                 if (!list) return;
 
-                if (snapshot.empty) {
-                    list.innerHTML = '<div class="no-comments">Nessun commento ancora. Sii il primo! 🎤</div>';
+                // Filtra per serata in JS (evita indice composito Firestore)
+                const docs = serata
+                    ? snapshot.docs.filter(doc => doc.data().serata === serata)
+                    : snapshot.docs;
+
+                if (docs.length === 0) {
+                    list.innerHTML = '<div class="no-comments">Nessun commento ancora per questa serata. Sii il primo! 🎤</div>';
                     return;
                 }
 
-                list.innerHTML = snapshot.docs.map(doc => {
+                list.innerHTML = docs.map(doc => {
                     const c = doc.data();
                     const date = c.timestamp
                         ? c.timestamp.toDate().toLocaleString('it-IT', {
@@ -346,7 +360,7 @@ function loadComments(artistId) {
         );
 }
 
-function submitComment(artistId) {
+function submitComment(artistId, serata) {
     if (!window.db) {
         alert('Sistema commenti non configurato.\nSegui le istruzioni in firebase-config.js');
         return;
@@ -381,6 +395,7 @@ function submitComment(artistId) {
 
     window.db.collection('comments').add({
         artistId: artistId,
+        serata: serata || null,
         authorName: name,
         text: text,
         timestamp: firebase.firestore.FieldValue.serverTimestamp()
@@ -431,97 +446,104 @@ function loadAllComments() {
                     return;
                 }
 
-                // Raggruppa per artistId
-                const grouped = {};
+                const SERATE_ORDER = [
+                    { key: 's1', label: '🎭 Serate 1–3' },
+                    { key: 's2', label: '🎸 Serata Cover' },
+                    { key: 's3', label: '🏆 Finale' }
+                ];
+
+                // Raggruppa per serata → per artistId
+                const bySerata = {};
                 snapshot.docs.forEach(doc => {
                     const c = doc.data();
-                    if (!grouped[c.artistId]) grouped[c.artistId] = [];
-                    grouped[c.artistId].push(c);
+                    const s = c.serata || 'altro';
+                    if (!bySerata[s]) bySerata[s] = {};
+                    const key = c.artistId != null ? String(c.artistId) : '__general__';
+                    if (!bySerata[s][key]) bySerata[s][key] = [];
+                    bySerata[s][key].push(c);
                 });
 
-                // Ordina i gruppi seguendo la classifica attuale
                 const sorted = [...artists].sort((a, b) => calculateTotal(b) - calculateTotal(a));
+
+                function renderCommentItem(c) {
+                    const date = c.timestamp
+                        ? c.timestamp.toDate().toLocaleString('it-IT', {
+                              day: '2-digit', month: '2-digit', year: 'numeric',
+                              hour: '2-digit', minute: '2-digit'
+                          })
+                        : '';
+                    return `
+                        <div class="comment-item">
+                            <div class="comment-header">
+                                <span class="comment-author">👤 ${escapeHtml(c.authorName)}</span>
+                                <span class="comment-date">${date}</span>
+                            </div>
+                            <div class="comment-body">${escapeHtml(c.text)}</div>
+                        </div>
+                    `;
+                }
+
+                function renderArtistGroup(artistKey, comments) {
+                    const artist = sorted.find(a => String(a.id) === artistKey);
+                    const count = comments.length;
+                    const name = artist ? escapeHtml(artist.name) : `Artista #${escapeHtml(artistKey)}`;
+                    const song = artist && artist.song ? `<span class="acg-artist-song">${escapeHtml(artist.song)}</span>` : '';
+                    const photo = artist ? `<img src="${artist.photo || 'https://via.placeholder.com/50'}" alt="${name}" onerror="this.src='https://via.placeholder.com/50'">` : '';
+                    return `
+                        <div class="acg-group">
+                            <div class="acg-header">
+                                ${photo}
+                                <div class="acg-header-info">
+                                    <span class="acg-artist-name">${name}</span>
+                                    ${song}
+                                </div>
+                                <span class="acg-count">${count} comment${count !== 1 ? 'i' : 'o'}</span>
+                            </div>
+                            <div class="acg-list">${comments.map(renderCommentItem).join('')}</div>
+                        </div>
+                    `;
+                }
 
                 let html = '';
                 let hasAny = false;
 
-                sorted.forEach(artist => {
-                    const comments = grouped[artist.id];
-                    if (!comments || comments.length === 0) return;
+                SERATE_ORDER.forEach(({ key, label }) => {
+                    const artistMap = bySerata[key];
+                    if (!artistMap || Object.keys(artistMap).length === 0) return;
                     hasAny = true;
 
-                    const count = comments.length;
+                    const artistKeys = Object.keys(artistMap);
+                    const sortedKeys = [
+                        ...sorted.map(a => String(a.id)).filter(k => artistKeys.includes(k)),
+                        ...artistKeys.filter(k => !sorted.find(a => String(a.id) === k))
+                    ];
+                    const totalCount = artistKeys.reduce((acc, k) => acc + artistMap[k].length, 0);
+
                     html += `
-                        <div class="acg-group">
-                            <div class="acg-header">
-                                <img src="${artist.photo || 'https://via.placeholder.com/50'}"
-                                     alt="${escapeHtml(artist.name)}"
-                                     onerror="this.src='https://via.placeholder.com/50'">
-                                <div class="acg-header-info">
-                                    <span class="acg-artist-name">${escapeHtml(artist.name)}</span>
-                                    ${artist.song ? `<span class="acg-artist-song">${escapeHtml(artist.song)}</span>` : ''}
-                                </div>
-                                <span class="acg-count">${count} comment${count !== 1 ? 'i' : 'o'}</span>
-                            </div>
-                            <div class="acg-list">
-                                ${comments.map(c => {
-                                    const date = c.timestamp
-                                        ? c.timestamp.toDate().toLocaleString('it-IT', {
-                                              day: '2-digit', month: '2-digit', year: 'numeric',
-                                              hour: '2-digit', minute: '2-digit'
-                                          })
-                                        : '';
-                                    return `
-                                        <div class="comment-item">
-                                            <div class="comment-header">
-                                                <span class="comment-author">👤 ${escapeHtml(c.authorName)}</span>
-                                                <span class="comment-date">${date}</span>
-                                            </div>
-                                            <div class="comment-body">${escapeHtml(c.text)}</div>
-                                        </div>
-                                    `;
-                                }).join('')}
-                            </div>
+                        <div class="acg-serata-section">
+                            <h3 class="acg-serata-title">${label} <span class="acg-serata-count">${totalCount} comment${totalCount !== 1 ? 'i' : 'o'}</span></h3>
+                            ${sortedKeys.map(k => renderArtistGroup(k, artistMap[k])).join('')}
                         </div>
                     `;
                 });
 
-                // Artisti senza match in classifica (es. id non trovato)
-                Object.keys(grouped).forEach(artistId => {
-                    const id = parseInt(artistId);
-                    if (sorted.find(a => a.id === id)) return;
-                    const comments = grouped[artistId];
-                    const count = comments.length;
+                // Commenti vecchi senza campo serata
+                const altroMap = bySerata['altro'];
+                if (altroMap && Object.keys(altroMap).length > 0) {
+                    hasAny = true;
+                    const artistKeys = Object.keys(altroMap);
+                    const sortedKeys = [
+                        ...sorted.map(a => String(a.id)).filter(k => artistKeys.includes(k)),
+                        ...artistKeys.filter(k => !sorted.find(a => String(a.id) === k))
+                    ];
+                    const totalCount = artistKeys.reduce((acc, k) => acc + altroMap[k].length, 0);
                     html += `
-                        <div class="acg-group">
-                            <div class="acg-header">
-                                <div class="acg-header-info">
-                                    <span class="acg-artist-name">Artista #${escapeHtml(artistId)}</span>
-                                </div>
-                                <span class="acg-count">${count} comment${count !== 1 ? 'i' : 'o'}</span>
-                            </div>
-                            <div class="acg-list">
-                                ${comments.map(c => {
-                                    const date = c.timestamp
-                                        ? c.timestamp.toDate().toLocaleString('it-IT', {
-                                              day: '2-digit', month: '2-digit', year: 'numeric',
-                                              hour: '2-digit', minute: '2-digit'
-                                          })
-                                        : '';
-                                    return `
-                                        <div class="comment-item">
-                                            <div class="comment-header">
-                                                <span class="comment-author">👤 ${escapeHtml(c.authorName)}</span>
-                                                <span class="comment-date">${date}</span>
-                                            </div>
-                                            <div class="comment-body">${escapeHtml(c.text)}</div>
-                                        </div>
-                                    `;
-                                }).join('')}
-                            </div>
+                        <div class="acg-serata-section">
+                            <h3 class="acg-serata-title">📝 Altri commenti <span class="acg-serata-count">${totalCount} comment${totalCount !== 1 ? 'i' : 'o'}</span></h3>
+                            ${sortedKeys.map(k => renderArtistGroup(k, altroMap[k])).join('')}
                         </div>
                     `;
-                });
+                }
 
                 container.innerHTML = hasAny ? html : '<div class="no-comments" style="padding:40px;text-align:center">Nessun commento ancora presente. Sii il primo! 🎤</div>';
             },
