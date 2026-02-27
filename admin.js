@@ -78,6 +78,19 @@ function loadData() {
                 showNotification('❌ Errore nel caricamento degli artisti da Firestore', true);
             }
         );
+
+    // Ascolta il flag televotoVisible
+    window.db.collection('settings').doc('app')
+        .onSnapshot(snap => {
+            const visible = snap.exists ? snap.data().televotoVisible === true : false;
+            const badge = document.getElementById('televotoStatusBadge');
+            const hideBtn = document.getElementById('btnHideTelevoto');
+            if (badge) {
+                badge.textContent = visible ? '👁️ Televoto VISIBILE al pubblico' : '🙈 Televoto nascosto al pubblico';
+                badge.className = 'televoto-status-badge ' + (visible ? 'tv-visible' : 'tv-hidden');
+            }
+            if (hideBtn) hideBtn.style.display = visible ? 'inline-block' : 'none';
+        }, () => {});
 }
 
 function calcS1(a)  { return parseFloat(a.performance||0) + parseFloat(a.songScore||0) + parseFloat(a.lyrics||0); }
@@ -459,14 +472,41 @@ async function applyPublicVotes() {
 
         await batch.commit();
 
+        // Rendi visibile il televoto al pubblico
+        await window.db.collection('settings').doc('app').set(
+            { televotoVisible: true },
+            { merge: true }
+        );
+
         showNotification(
-            `✅ Aggiornamento completato! Punteggio pubblico applicato a ${updated} artist${updated !== 1 ? 'i' : 'a'}.`
+            `✅ Aggiornamento completato! Punteggio pubblico applicato a ${updated} artist${updated !== 1 ? 'i' : 'a'} e reso visibile al pubblico.`
         );
     } catch (err) {
         console.error('Errore applyPublicVotes:', err);
         showNotification('❌ Errore durante l\'aggiornamento: ' + err.message, true);
     } finally {
         if (btn) { btn.disabled = false; btn.textContent = '🔄 Aggiorna con i voti del pubblico'; }
+    }
+}
+
+async function hidePublicVotes() {
+    if (!isAuthenticated || !window.db) return;
+
+    if (!confirm(
+        'Questa operazione nasconde il televoto dalla classifica pubblica.\n' +
+        'I punteggi rimangono salvati, puoi ripubblicarli quando vuoi.\n\n' +
+        'Continuare?'
+    )) return;
+
+    try {
+        await window.db.collection('settings').doc('app').set(
+            { televotoVisible: false },
+            { merge: true }
+        );
+        showNotification('🙈 Televoto nascosto al pubblico. I punteggi sono conservati su Firestore.');
+    } catch (err) {
+        console.error('Errore hidePublicVotes:', err);
+        showNotification('❌ Errore: ' + err.message, true);
     }
 }
 

@@ -2,6 +2,7 @@ let artists = [];
 let commentsUnsubscribe = null;
 let allCommentsUnsubscribe = null;
 let activeTab = 's1';
+let televotoVisible = false;
 
 const SERATA_LABELS = {
     s1: '🎭 Serate 1–3',
@@ -34,6 +35,19 @@ function loadData() {
                 renderAllTabs();
             },
             error => { console.error('Errore Firestore:', error); setGridError(); }
+        );
+
+    // Ascolta il flag televotoVisible da settings/app
+    window.db.collection('settings').doc('app')
+        .onSnapshot(
+            snap => {
+                const newVal = snap.exists ? (snap.data().televotoVisible === true) : false;
+                if (newVal !== televotoVisible) {
+                    televotoVisible = newVal;
+                    renderAllTabs();
+                }
+            },
+            () => { televotoVisible = false; }
         );
 }
 
@@ -73,10 +87,11 @@ function calcS3raw(a) { // Finale (solo criteri)
 function calcCriteria(a) {
     return calcS1(a) + calcS2(a) + calcS3raw(a);
 }
-// Totale ponderato: criteri 67% + televoto 33%
+// Totale ponderato: criteri 67% + televoto 33% (solo se televotoVisible)
 // max criteri = 7 × 10 = 70; pubblico normalizzato sulla stessa scala
 function calculateTotal(a) {
     const c = calcCriteria(a);
+    if (!televotoVisible) return c.toFixed(1);
     const p = parseFloat(a.pubblicoScore || 0);
     return (c * 0.67 + p * 2.31).toFixed(1);  // p*2.31 = (p/10)*70*0.33
 }
@@ -138,9 +153,9 @@ function renderS3() {
     if (!grid) return;
     const sorted = [...artists].sort((a, b) => calculateTotal(b) - calculateTotal(a));
     if (!sorted.length) { grid.innerHTML = '<p class="ranking-empty">Nessun artista.</p>'; return; }
-    const hasPub = artists.some(a => a.pubblicoScore != null && a.pubblicoScore !== '');
+    const totalLabel = televotoVisible ? 'Punteggio Finale (67%+33%)' : 'Punteggio Finale';
     grid.innerHTML = sorted.map((a, i) => {
-        const pubItem = (a.pubblicoScore != null && a.pubblicoScore !== '')
+        const pubItem = (televotoVisible && a.pubblicoScore != null && a.pubblicoScore !== '')
             ? `<div class="score-pubblico"><span>📺 Pubblico (33%)</span><strong>${a.pubblicoScore}</strong></div>`
             : '';
         return buildCard(a, i, calculateTotal, `
@@ -148,7 +163,7 @@ function renderS3() {
             <div><span>🎵 Brano</span><strong>${a.songFinale || '-'}</strong></div>
             <div><span>📝 Testo</span><strong>${a.lyricsFinale || '-'}</strong></div>
             ${pubItem}
-        `, 'Punteggio Finale (67%+33%)', calculateTotal(a));
+        `, totalLabel, calculateTotal(a));
     }).join('');
 }
 
@@ -201,7 +216,7 @@ function showReview(id) {
     const savedName = (localStorage.getItem('commentName') || '').replace(/"/g, '&quot;');
 
     const hasS3 = artist.perfFinale || artist.songFinale || artist.lyricsFinale || artist.reviewFinale;
-    const hasPub = artist.pubblicoScore != null && artist.pubblicoScore !== '';
+    const hasPub = televotoVisible && artist.pubblicoScore != null && artist.pubblicoScore !== '';
 
     modalBody.innerHTML = `
         <h2>${artist.name}</h2>

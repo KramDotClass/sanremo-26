@@ -39,7 +39,9 @@
                     <button onclick="migrateFromJson()" class="btn-secondary" id="btnMigrate">📤 Migra da data.json</button>
                     <button onclick="showPublicVotes()" class="btn-secondary">📊 Consulta televoto</button>
                     <button onclick="applyPublicVotes()" class="btn-primary">🔄 Aggiorna con i voti del pubblico</button>
+                    <button onclick="hidePublicVotes()" class="btn-danger" id="btnHideTelevoto" style="display:none;">🙈 Nascondi televoto</button>
                 </div>
+                <div id="televotoStatusBadge" class="televoto-status-badge tv-hidden">🙈 Televoto nascosto al pubblico</div>
 
                 <div class="info-box">
                     <strong>ℹ️ Salvataggio automatico:</strong> Ogni modifica viene salvata direttamente su Firebase e diventa visibile in tempo reale a tutti i visitatori. Nessun file da esportare.
