@@ -1101,7 +1101,32 @@ tr:hover {
         padding: 0;
     }
     .tab-bar {
-        padding: 16px 16px 0;
+        padding: 12px 12px 0;
+        gap: 4px;
+    }
+    .tab-btn {
+        padding: 8px 12px;
+        font-size: 0.88rem;
+    }
+}
+
+/* Su schermi stretti: griglia 2×2 così tutti i tab restano visibili */
+@media (max-width: 520px) {
+    .tab-bar {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 4px;
+        padding: 10px 10px 0;
+        border-bottom: 2px solid var(--border);
+    }
+
+    .tab-btn {
+        border-radius: 8px 8px 0 0;
+        border-bottom: 3px solid transparent;
+        padding: 10px 6px;
+        font-size: 0.82rem;
+        text-align: center;
+        white-space: nowrap;
     }
 }
 
