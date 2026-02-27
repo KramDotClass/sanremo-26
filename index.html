@@ -19,20 +19,24 @@
 
         <main>
             <div class="tab-bar">
-                <button class="tab-btn active" id="tabRanking" onclick="switchTab('ranking')">🏆 Classifica</button>
-                <button class="tab-btn" id="tabComments" onclick="switchTab('comments')">💬 Tutti i commenti</button>
+                <button class="tab-btn active" id="tabS1"       onclick="switchTab('s1')">🎭 Serate 1–3</button>
+                <button class="tab-btn"         id="tabS2"       onclick="switchTab('s2')">🎸 Cover</button>
+                <button class="tab-btn"         id="tabS3"       onclick="switchTab('s3')">🏆 Finale</button>
+                <button class="tab-btn"         id="tabComments" onclick="switchTab('comments')">💬 Commenti</button>
             </div>
 
-            <div id="rankingPanel">
-                <div class="artists-grid ranking-grid" id="rankingGrid">
-                    <!-- Popolato dinamicamente -->
-                </div>
+            <div id="panelS1">
+                <div class="artists-grid ranking-grid" id="gridS1"><!-- dinamico --></div>
+            </div>
+            <div id="panelS2" style="display:none;">
+                <div class="artists-grid ranking-grid" id="gridS2"><!-- dinamico --></div>
+            </div>
+            <div id="panelS3" style="display:none;">
+                <div class="artists-grid ranking-grid" id="gridS3"><!-- dinamico --></div>
             </div>
 
             <div id="commentsPanel" style="display:none;">
-                <div id="allCommentsContainer">
-                    <!-- Popolato dinamicamente -->
-                </div>
+                <div id="allCommentsContainer"><!-- dinamico --></div>
             </div>
         </main>
     </div>

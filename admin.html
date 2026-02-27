@@ -60,53 +60,86 @@
                 <form id="editForm" onsubmit="saveArtist(event)">
                     <input type="hidden" id="editId">
 
+                    <!-- Anagrafica -->
                     <div class="form-group">
                         <label for="editName">Nome Artista *</label>
                         <input type="text" id="editName" required>
                     </div>
-
                     <div class="form-group">
                         <label for="editSong">Titolo Canzone</label>
                         <input type="text" id="editSong">
                     </div>
-
                     <div class="form-group">
                         <label for="editPhoto">URL Foto</label>
                         <input type="url" id="editPhoto" placeholder="https://...">
-                        <small>Puoi usare servizi come imgur.com o imgbb.com per caricare foto gratuitamente</small>
+                        <small>Puoi usare imgur.com o imgbb.com per caricare foto gratuitamente</small>
                     </div>
 
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="editPerformance">Performance</label>
-                            <input type="number" id="editPerformance" step="0.5" value="0">
-                        </div>
+                    <!-- Tab serata -->
+                    <div class="serata-tabs">
+                        <button type="button" class="serata-tab-btn active" onclick="switchSerataTab('s1', this)">🎭 Serate 1–3</button>
+                        <button type="button" class="serata-tab-btn"        onclick="switchSerataTab('s2', this)">🎸 Cover</button>
+                        <button type="button" class="serata-tab-btn"        onclick="switchSerataTab('s3', this)">🏆 Finale</button>
+                    </div>
 
+                    <!-- Serata 1-3 -->
+                    <div class="serata-panel" id="serataPanel_s1">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="editPerformance">🎤 Performance</label>
+                                <input type="number" id="editPerformance" step="0.5" min="0" max="10" value="0">
+                            </div>
+                            <div class="form-group">
+                                <label for="editSongScore">🎵 Brano</label>
+                                <input type="number" id="editSongScore" step="0.5" min="0" max="10" value="0">
+                            </div>
+                        </div>
                         <div class="form-group">
-                            <label for="editSongScore">Valutazione Brano</label>
-                            <input type="number" id="editSongScore" step="0.5" value="0">
+                            <label for="editLyrics">📝 Testo</label>
+                            <input type="number" id="editLyrics" step="0.5" min="0" max="10" value="0">
+                        </div>
+                        <div class="form-group">
+                            <label for="editReview">Valutazione serate 1–3</label>
+                            <textarea id="editReview" rows="5" placeholder="Valutazione delle prime 3 serate..."></textarea>
                         </div>
                     </div>
 
-                    <div class="form-row">
+                    <!-- Serata Cover -->
+                    <div class="serata-panel" id="serataPanel_s2" style="display:none;">
                         <div class="form-group">
-                            <label for="editLyrics">Valutazione Testo</label>
-                            <input type="number" id="editLyrics" step="0.5" value="0">
+                            <label for="editCover">🎸 Serata Cover</label>
+                            <input type="number" id="editCover" step="0.5" min="0" max="10" value="0">
                         </div>
-
                         <div class="form-group">
-                            <label for="editCover">Serata Cover</label>
-                            <input type="number" id="editCover" step="0.5" value="0">
+                            <label for="editReviewCover">Valutazione Serata Cover</label>
+                            <textarea id="editReviewCover" rows="5" placeholder="Valutazione della serata cover..."></textarea>
                         </div>
                     </div>
 
-                    <div class="info-box" style="margin-bottom: 20px;">
-                        <strong>Punteggio Finale:</strong> Calcolato automaticamente come somma dei 4 punteggi sopra
-                    </div>
-
-                    <div class="form-group">
-                        <label for="editReview">Valutazione Dettagliata</label>
-                        <textarea id="editReview" rows="6" placeholder="Scrivi qui la tua valutazione completa..."></textarea>
+                    <!-- Finale -->
+                    <div class="serata-panel" id="serataPanel_s3" style="display:none;">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="editPerfFinale">🎤 Performance Finale</label>
+                                <input type="number" id="editPerfFinale" step="0.5" min="0" max="10" value="0">
+                            </div>
+                            <div class="form-group">
+                                <label for="editSongFinale">🎵 Brano Finale</label>
+                                <input type="number" id="editSongFinale" step="0.5" min="0" max="10" value="0">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="editLyricsFinale">📝 Testo Finale</label>
+                            <input type="number" id="editLyricsFinale" step="0.5" min="0" max="10" value="0">
+                        </div>
+                        <div class="form-group">
+                            <label for="editReviewFinale">Valutazione Finale</label>
+                            <textarea id="editReviewFinale" rows="5" placeholder="Valutazione della serata finale..."></textarea>
+                        </div>
+                        <div class="info-box">
+                            <strong>📺 Televoto (33%):</strong> applicato automaticamente tramite il pulsante
+                            "Aggiorna con i voti del pubblico" nella dashboard.
+                        </div>
                     </div>
 
                     <div class="form-actions">

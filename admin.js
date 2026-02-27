@@ -80,14 +80,15 @@ function loadData() {
         );
 }
 
+function calcS1(a)  { return parseFloat(a.performance||0) + parseFloat(a.songScore||0) + parseFloat(a.lyrics||0); }
+function calcS2(a)  { return parseFloat(a.cover||0); }
+function calcS3raw(a) { return parseFloat(a.perfFinale||0) + parseFloat(a.songFinale||0) + parseFloat(a.lyricsFinale||0); }
+function calcCriteria(a) { return calcS1(a) + calcS2(a) + calcS3raw(a); }
+
 function calculateTotal(artist) {
-    return (
-        parseFloat(artist.performance || 0) +
-        parseFloat(artist.songScore || 0) +
-        parseFloat(artist.lyrics || 0) +
-        parseFloat(artist.cover || 0) +
-        parseFloat(artist.pubblicoScore || 0)
-    ).toFixed(1);
+    const c = calcCriteria(artist);
+    const p = parseFloat(artist.pubblicoScore || 0);
+    return (c * 0.67 + p * 2.31).toFixed(1);
 }
 
 function renderArtists() {
@@ -106,21 +107,27 @@ function renderArtists() {
     grid.innerHTML = sorted.map((artist, index) => `
         <div class="artist-card" onclick="editArtist('${artist.firestoreId}')">
             <div class="position-badge">#${index + 1}</div>
-            <img src="${artist.photo || 'https://via.placeholder.com/300x200'}" 
+            <img src="${artist.photo || 'https://via.placeholder.com/300x200'}"
                  alt="${artist.name}"
                  onerror="this.src='https://via.placeholder.com/300x200'">
             <h3>${artist.name}</h3>
             ${artist.song ? `<p><em>${artist.song}</em></p>` : ''}
             <div class="scores">
+                <div style="grid-column:1/-1;font-size:0.7rem;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.05em;padding-bottom:2px">🎭 Serate 1–3</div>
                 <div>Performance: <strong>${artist.performance || 0}</strong></div>
                 <div>Brano: <strong>${artist.songScore || 0}</strong></div>
                 <div>Testo: <strong>${artist.lyrics || 0}</strong></div>
-                <div>Cover: <strong>${artist.cover || 0}</strong></div>
-                ${artist.pubblicoScore !== undefined && artist.pubblicoScore !== null
-                    ? `<div>Pubblico: <strong>${artist.pubblicoScore}</strong></div>`
+                <div style="grid-column:1/-1;font-size:0.7rem;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.05em;padding-bottom:2px;padding-top:4px">🎸 Cover</div>
+                <div style="grid-column:1/-1">Cover: <strong>${artist.cover || 0}</strong></div>
+                <div style="grid-column:1/-1;font-size:0.7rem;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.05em;padding-bottom:2px;padding-top:4px">🏆 Finale</div>
+                <div>Perf: <strong>${artist.perfFinale || 0}</strong></div>
+                <div>Brano: <strong>${artist.songFinale || 0}</strong></div>
+                <div>Testo: <strong>${artist.lyricsFinale || 0}</strong></div>
+                ${artist.pubblicoScore != null && artist.pubblicoScore !== ''
+                    ? `<div style="grid-column:1/-1">📺 Pubblico: <strong>${artist.pubblicoScore}</strong></div>`
                     : ''}
             </div>
-            <p style="margin-top: 10px; color: var(--primary);"><strong>Totale/Finale: ${calculateTotal(artist)}</strong></p>
+            <p style="margin-top: 10px; color: var(--primary);"><strong>Totale finale: ${calculateTotal(artist)}</strong></p>
         </div>
     `).join('');
 }
@@ -131,8 +138,23 @@ function addNewArtist() {
     document.getElementById('modalTitle').textContent = 'Aggiungi Nuovo Artista';
     document.getElementById('editForm').reset();
     document.getElementById('editId').value = '';
+    // Reset campi numerici a 0 (reset() li lascia vuoti)
+    ['editPerformance','editSongScore','editLyrics','editCover',
+     'editPerfFinale','editSongFinale','editLyricsFinale'].forEach(id => {
+        document.getElementById(id).value = 0;
+    });
+    // Mostra prima tab serata
+    switchSerataTab('s1', document.querySelector('.serata-tab-btn'));
     document.querySelector('.btn-danger').style.display = 'none';
     document.getElementById('editModal').style.display = 'block';
+}
+
+function switchSerataTab(tab, btnEl) {
+    document.querySelectorAll('.serata-panel').forEach(p => p.style.display = 'none');
+    document.querySelectorAll('.serata-tab-btn').forEach(b => b.classList.remove('active'));
+    const panel = document.getElementById('serataPanel_' + tab);
+    if (panel) panel.style.display = 'block';
+    if (btnEl) btnEl.classList.add('active');
 }
 
 function editArtist(firestoreId) {
@@ -142,34 +164,51 @@ function editArtist(firestoreId) {
     if (!artist) return;
 
     document.getElementById('modalTitle').textContent = 'Modifica Artista';
-    document.getElementById('editId').value = artist.firestoreId; // doc ID Firestore
-    document.getElementById('editName').value = artist.name || '';
-    document.getElementById('editSong').value = artist.song || '';
-    document.getElementById('editPhoto').value = artist.photo || '';
-    document.getElementById('editPerformance').value = artist.performance || 0;
-    document.getElementById('editSongScore').value = artist.songScore || 0;
-    document.getElementById('editLyrics').value = artist.lyrics || 0;
-    document.getElementById('editCover').value = artist.cover || 0;
-    document.getElementById('editReview').value = artist.review || '';
+    document.getElementById('editId').value          = artist.firestoreId;
+    document.getElementById('editName').value        = artist.name || '';
+    document.getElementById('editSong').value        = artist.song || '';
+    document.getElementById('editPhoto').value       = artist.photo || '';
+    // Serate 1-3
+    document.getElementById('editPerformance').value  = artist.performance   || 0;
+    document.getElementById('editSongScore').value    = artist.songScore     || 0;
+    document.getElementById('editLyrics').value       = artist.lyrics        || 0;
+    document.getElementById('editReview').value       = artist.review        || '';
+    // Cover
+    document.getElementById('editCover').value        = artist.cover         || 0;
+    document.getElementById('editReviewCover').value  = artist.reviewCover   || '';
+    // Finale
+    document.getElementById('editPerfFinale').value   = artist.perfFinale    || 0;
+    document.getElementById('editSongFinale').value   = artist.songFinale    || 0;
+    document.getElementById('editLyricsFinale').value = artist.lyricsFinale  || 0;
+    document.getElementById('editReviewFinale').value = artist.reviewFinale  || '';
 
+    switchSerataTab('s1', document.querySelector('.serata-tab-btn'));
     document.querySelector('.btn-danger').style.display = 'block';
-    document.getElementById('editModal').style.display = 'block';
+    document.getElementById('editModal').style.display  = 'block';
 }
 
 function saveArtist(event) {
     event.preventDefault();
     if (!isAuthenticated || !window.db) return;
 
-    const firestoreId = document.getElementById('editId').value; // doc ID Firestore (stringa)
+    const firestoreId = document.getElementById('editId').value;
     const artistData = {
-        name: document.getElementById('editName').value,
-        song: document.getElementById('editSong').value,
-        photo: document.getElementById('editPhoto').value,
-        performance: parseFloat(document.getElementById('editPerformance').value) || 0,
-        songScore: parseFloat(document.getElementById('editSongScore').value) || 0,
-        lyrics: parseFloat(document.getElementById('editLyrics').value) || 0,
-        cover: parseFloat(document.getElementById('editCover').value) || 0,
-        review: document.getElementById('editReview').value
+        name:         document.getElementById('editName').value,
+        song:         document.getElementById('editSong').value,
+        photo:        document.getElementById('editPhoto').value,
+        // Serate 1-3
+        performance:  parseFloat(document.getElementById('editPerformance').value)  || 0,
+        songScore:    parseFloat(document.getElementById('editSongScore').value)    || 0,
+        lyrics:       parseFloat(document.getElementById('editLyrics').value)       || 0,
+        review:       document.getElementById('editReview').value,
+        // Cover
+        cover:        parseFloat(document.getElementById('editCover').value)        || 0,
+        reviewCover:  document.getElementById('editReviewCover').value,
+        // Finale
+        perfFinale:   parseFloat(document.getElementById('editPerfFinale').value)   || 0,
+        songFinale:   parseFloat(document.getElementById('editSongFinale').value)   || 0,
+        lyricsFinale: parseFloat(document.getElementById('editLyricsFinale').value) || 0,
+        reviewFinale: document.getElementById('editReviewFinale').value
     };
 
     const btn = document.querySelector('#editForm .btn-primary');

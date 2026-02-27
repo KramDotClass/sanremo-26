@@ -8,154 +8,239 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function loadData() {
-    const grid = document.getElementById('rankingGrid');
+    setGridLoading();
 
     if (!window.db) {
-        // Fallback a data.json se Firebase non è configurato
         fetch('data.json')
             .then(r => r.json())
-            .then(data => { artists = data; renderCards(); })
-            .catch(() => {
-                grid.innerHTML = '<p class="ranking-empty">Errore nel caricamento dei dati</p>';
-            });
+            .then(data => { artists = data; renderAllTabs(); })
+            .catch(() => setGridError());
         return;
     }
 
-    grid.innerHTML = '<p class="ranking-empty">⏳ Caricamento classifica...</p>';
-
-    // Listener real-time: si aggiorna automaticamente se l'admin modifica i dati
     window.db.collection('artists')
         .orderBy('id', 'asc')
         .onSnapshot(
             snapshot => {
-                if (snapshot.empty) {
-                    grid.innerHTML = '<p class="ranking-empty">Nessun artista ancora inserito.</p>';
-                    return;
-                }
+                if (snapshot.empty) { setGridEmpty(); return; }
                 artists = snapshot.docs.map(doc => ({ firestoreId: doc.id, ...doc.data() }));
-                renderCards();
+                renderAllTabs();
             },
-            error => {
-                console.error('Errore Firestore:', error);
-                grid.innerHTML = '<p class="ranking-empty">❌ Errore nel caricamento dei dati</p>';
-            }
+            error => { console.error('Errore Firestore:', error); setGridError(); }
         );
 }
 
-function calculateTotal(artist) {
-    return (
-        parseFloat(artist.performance || 0) +
-        parseFloat(artist.songScore || 0) +
-        parseFloat(artist.lyrics || 0) +
-        parseFloat(artist.cover || 0) +
-        parseFloat(artist.pubblicoScore || 0)
-    ).toFixed(1);
+function setGridLoading() {
+    ['gridS1','gridS2','gridS3'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = '<p class="ranking-empty">⏳ Caricamento...</p>';
+    });
+}
+function setGridEmpty() {
+    ['gridS1','gridS2','gridS3'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = '<p class="ranking-empty">Nessun artista ancora inserito.</p>';
+    });
+}
+function setGridError() {
+    ['gridS1','gridS2','gridS3'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = '<p class="ranking-empty">❌ Errore nel caricamento dei dati.</p>';
+    });
 }
 
-function renderCards() {
-    const grid = document.getElementById('rankingGrid');
+// ── Calcoli punteggi ────────────────────────────────────────
+function calcS1(a) {   // Prime 3 serate
+    return parseFloat(a.performance || 0) +
+           parseFloat(a.songScore   || 0) +
+           parseFloat(a.lyrics      || 0);
+}
+function calcS2(a) {   // Serata Cover
+    return parseFloat(a.cover || 0);
+}
+function calcS3raw(a) { // Finale (solo criteri)
+    return parseFloat(a.perfFinale || 0) +
+           parseFloat(a.songFinale  || 0) +
+           parseFloat(a.lyricsFinale|| 0);
+}
+function calcCriteria(a) {
+    return calcS1(a) + calcS2(a) + calcS3raw(a);
+}
+// Totale ponderato: criteri 67% + televoto 33%
+// max criteri = 7 × 10 = 70; pubblico normalizzato sulla stessa scala
+function calculateTotal(a) {
+    const c = calcCriteria(a);
+    const p = parseFloat(a.pubblicoScore || 0);
+    return (c * 0.67 + p * 2.31).toFixed(1);  // p*2.31 = (p/10)*70*0.33
+}
 
-    // Ordina per totale decrescente (posizione automatica)
-    const sorted = [...artists].sort((a, b) => calculateTotal(b) - calculateTotal(a));
+// ── Render per serata ───────────────────────────────────────
+const MEDALS = { 1: '🥇', 2: '🥈', 3: '🥉' };
 
-    if (sorted.length === 0) {
-        grid.innerHTML = '<p class="ranking-empty">Nessun artista ancora inserito.</p>';
-        return;
-    }
-
-    const medalMap = { 1: '🥇', 2: '🥈', 3: '🥉' };
-
-    grid.innerHTML = sorted.map((artist, index) => {
-        const pos = index + 1;
-        const posLabel = medalMap[pos] || `#${pos}`;
-        const hasPublico = artist.pubblicoScore !== undefined &&
-                           artist.pubblicoScore !== null &&
-                           artist.pubblicoScore !== '';
-
-        return `
-        <div class="artist-card ranking-card" onclick="showReview(${artist.id})">
-            <div class="position-badge ranking-pos">${posLabel}</div>
-            <img src="${artist.photo || 'https://via.placeholder.com/300x200'}"
-                 alt="${artist.name}"
-                 onerror="this.src='https://via.placeholder.com/300x200'">
-            <div class="ranking-card-body">
-                <h3>${artist.name}</h3>
-                ${artist.song ? `<p class="ranking-song">🎵 ${artist.song}</p>` : ''}
-                <div class="scores ranking-scores">
-                    <div><span>🎤 Perf.</span><strong>${artist.performance || '-'}</strong></div>
-                    <div><span>🎵 Brano</span><strong>${artist.songScore || '-'}</strong></div>
-                    <div><span>📝 Testo</span><strong>${artist.lyrics || '-'}</strong></div>
-                    <div><span>🎸 Cover</span><strong>${artist.cover || '-'}</strong></div>
-                    ${hasPublico ? `<div class="score-pubblico"><span>📺 Pubblico</span><strong>${artist.pubblicoScore}</strong></div>` : ''}
-                </div>
-                <div class="ranking-total">
-                    <span>Punteggio Totale</span>
-                    <strong>${calculateTotal(artist)}</strong>
-                </div>
-                <button class="btn-review ranking-btn"
-                        onclick="event.stopPropagation(); showReview(${artist.id})">
-                    📝 Valutazione e commenti
-                </button>
+function buildCard(artist, index, scoreFn, scoreItems, totalLabel, totalValue) {
+    const pos      = index + 1;
+    const posLabel = MEDALS[pos] || `#${pos}`;
+    return `
+    <div class="artist-card ranking-card" onclick="showReview(${artist.id})">
+        <div class="position-badge ranking-pos">${posLabel}</div>
+        <img src="${artist.photo || 'https://via.placeholder.com/300x200'}"
+             alt="${artist.name}"
+             onerror="this.src='https://via.placeholder.com/300x200'">
+        <div class="ranking-card-body">
+            <h3>${artist.name}</h3>
+            ${artist.song ? `<p class="ranking-song">🎵 ${artist.song}</p>` : ''}
+            <div class="scores ranking-scores">
+                ${scoreItems}
             </div>
-        </div>`;
+            <div class="ranking-total">
+                <span>${totalLabel}</span>
+                <strong>${totalValue}</strong>
+            </div>
+            <button class="btn-review ranking-btn"
+                    onclick="event.stopPropagation(); showReview(${artist.id})">
+                📝 Valutazione e commenti
+            </button>
+        </div>
+    </div>`;
+}
+
+function renderS1() {
+    const grid   = document.getElementById('gridS1');
+    if (!grid) return;
+    const sorted = [...artists].sort((a, b) => calcS1(b) - calcS1(a));
+    if (!sorted.length) { grid.innerHTML = '<p class="ranking-empty">Nessun artista.</p>'; return; }
+    grid.innerHTML = sorted.map((a, i) => buildCard(a, i, calcS1, `
+        <div><span>🎤 Performance</span><strong>${a.performance || '-'}</strong></div>
+        <div><span>🎵 Brano</span><strong>${a.songScore || '-'}</strong></div>
+        <div><span>📝 Testo</span><strong>${a.lyrics || '-'}</strong></div>
+    `, 'Punteggio serate 1–3', calcS1(a).toFixed(1))).join('');
+}
+
+function renderS2() {
+    const grid   = document.getElementById('gridS2');
+    if (!grid) return;
+    const sorted = [...artists].sort((a, b) => calcS2(b) - calcS2(a));
+    if (!sorted.length) { grid.innerHTML = '<p class="ranking-empty">Nessun artista.</p>'; return; }
+    grid.innerHTML = sorted.map((a, i) => buildCard(a, i, calcS2, `
+        <div class="score-cover-solo"><span>🎸 Serata Cover</span><strong>${a.cover || '-'}</strong></div>
+    `, 'Punteggio Cover', calcS2(a).toFixed(1))).join('');
+}
+
+function renderS3() {
+    const grid   = document.getElementById('gridS3');
+    if (!grid) return;
+    const sorted = [...artists].sort((a, b) => calculateTotal(b) - calculateTotal(a));
+    if (!sorted.length) { grid.innerHTML = '<p class="ranking-empty">Nessun artista.</p>'; return; }
+    const hasPub = artists.some(a => a.pubblicoScore != null && a.pubblicoScore !== '');
+    grid.innerHTML = sorted.map((a, i) => {
+        const pubItem = (a.pubblicoScore != null && a.pubblicoScore !== '')
+            ? `<div class="score-pubblico"><span>📺 Pubblico (33%)</span><strong>${a.pubblicoScore}</strong></div>`
+            : '';
+        return buildCard(a, i, calculateTotal, `
+            <div><span>🎤 Performance</span><strong>${a.perfFinale || '-'}</strong></div>
+            <div><span>🎵 Brano</span><strong>${a.songFinale || '-'}</strong></div>
+            <div><span>📝 Testo</span><strong>${a.lyricsFinale || '-'}</strong></div>
+            ${pubItem}
+        `, 'Punteggio Finale (67%+33%)', calculateTotal(a));
     }).join('');
+}
+
+function renderAllTabs() {
+    renderS1();
+    renderS2();
+    renderS3();
+}
+
+// ── Cambio tab ──────────────────────────────────────────────
+function switchTab(tab) {
+    const panels = {
+        s1:       'panelS1',
+        s2:       'panelS2',
+        s3:       'panelS3',
+        comments: 'commentsPanel'
+    };
+    const tabs = {
+        s1:       'tabS1',
+        s2:       'tabS2',
+        s3:       'tabS3',
+        comments: 'tabComments'
+    };
+
+    Object.keys(panels).forEach(key => {
+        const p = document.getElementById(panels[key]);
+        const t = document.getElementById(tabs[key]);
+        if (p) p.style.display = (key === tab) ? 'block' : 'none';
+        if (t) t.classList.toggle('active', key === tab);
+    });
+
+    if (tab === 'comments') {
+        loadAllComments();
+    } else {
+        if (allCommentsUnsubscribe) {
+            allCommentsUnsubscribe();
+            allCommentsUnsubscribe = null;
+        }
+    }
 }
 
 function showReview(id) {
     const artist = artists.find(a => a.id === id);
     if (!artist) return;
 
-    const modal = document.getElementById('reviewModal');
+    const modal     = document.getElementById('reviewModal');
     const modalBody = document.getElementById('modalBody');
     const savedName = (localStorage.getItem('commentName') || '').replace(/"/g, '&quot;');
 
+    const hasS3 = artist.perfFinale || artist.songFinale || artist.lyricsFinale || artist.reviewFinale;
+    const hasPub = artist.pubblicoScore != null && artist.pubblicoScore !== '';
+
     modalBody.innerHTML = `
         <h2>${artist.name}</h2>
-        ${artist.song ? `<p style="color: var(--text-light); font-style: italic;">${artist.song}</p>` : ''}
+        ${artist.song ? `<p style="color:var(--text-light);font-style:italic;">${artist.song}</p>` : ''}
 
-        <div class="scores-grid">
-            <div class="score-item">
-                <strong>Performance</strong>
-                <span>${artist.performance || '-'}</span>
+        <!-- Punteggi riepilogativi -->
+        <div class="review-serata-block">
+            <h4 class="review-serata-title">🎭 Serate 1–3</h4>
+            <div class="scores-grid">
+                <div class="score-item"><strong>Performance</strong><span>${artist.performance || '-'}</span></div>
+                <div class="score-item"><strong>Brano</strong><span>${artist.songScore || '-'}</span></div>
+                <div class="score-item"><strong>Testo</strong><span>${artist.lyrics || '-'}</span></div>
             </div>
-            <div class="score-item">
-                <strong>Brano</strong>
-                <span>${artist.songScore || '-'}</span>
-            </div>
-            <div class="score-item">
-                <strong>Testo</strong>
-                <span>${artist.lyrics || '-'}</span>
-            </div>
-            <div class="score-item">
-                <strong>Cover</strong>
-                <span>${artist.cover || '-'}</span>
-            </div>
+            <div class="review-text">${artist.review || '<em>Nessuna valutazione.</em>'}</div>
         </div>
 
-        <h3>Punteggio Totale: ${calculateTotal(artist)}</h3>
-        <h3>Punteggio Finale: ${calculateTotal(artist)}</h3>
-
-        <h3>Valutazione Dettagliata</h3>
-        <div class="review-text">
-            ${artist.review || 'Nessuna valutazione ancora disponibile.'}
+        <div class="review-serata-block">
+            <h4 class="review-serata-title">🎸 Serata Cover</h4>
+            <div class="scores-grid">
+                <div class="score-item"><strong>Cover</strong><span>${artist.cover || '-'}</span></div>
+            </div>
+            ${artist.reviewCover ? `<div class="review-text">${artist.reviewCover}</div>` : '<div class="review-text"><em>Nessuna valutazione.</em></div>'}
         </div>
+
+        ${hasS3 ? `
+        <div class="review-serata-block">
+            <h4 class="review-serata-title">🏆 Finale</h4>
+            <div class="scores-grid">
+                <div class="score-item"><strong>Performance</strong><span>${artist.perfFinale || '-'}</span></div>
+                <div class="score-item"><strong>Brano</strong><span>${artist.songFinale || '-'}</span></div>
+                <div class="score-item"><strong>Testo</strong><span>${artist.lyricsFinale || '-'}</span></div>
+                ${hasPub ? `<div class="score-item score-item-pub"><strong>📺 Pubblico (33%)</strong><span>${artist.pubblicoScore}</span></div>` : ''}
+            </div>
+            ${artist.reviewFinale ? `<div class="review-text">${artist.reviewFinale}</div>` : ''}
+            <div class="ranking-total" style="margin-top:10px;">
+                <span>Punteggio Finale (67%+33%)</span>
+                <strong>${calculateTotal(artist)}</strong>
+            </div>
+        </div>` : ''}
 
         <div class="comments-section">
             <h3>💬 Commenti dei visitatori</h3>
             <div class="comment-form">
-                <input
-                    type="text"
-                    id="commentName"
-                    class="comment-input"
-                    placeholder="Il tuo nome (es. Mario Rossi)..."
-                    maxlength="50"
-                    value="${savedName}">
-                <textarea
-                    id="commentText"
-                    class="comment-textarea"
+                <input type="text" id="commentName" class="comment-input"
+                    placeholder="Il tuo nome (es. Mario Rossi)..." maxlength="50" value="${savedName}">
+                <textarea id="commentText" class="comment-textarea"
                     placeholder="Lascia un commento su questo artista..."
-                    maxlength="500"
-                    rows="3"></textarea>
+                    maxlength="500" rows="3"></textarea>
                 <button class="btn-comment" onclick="submitComment(${artist.id})">✉️ Pubblica commento</button>
             </div>
             <div id="commentsList" class="comments-list">
@@ -319,33 +404,7 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
-// ============================================================
-// TAB SWITCHING
-// ============================================================
-
-function switchTab(tab) {
-    const rankingPanel  = document.getElementById('rankingPanel');
-    const commentsPanel = document.getElementById('commentsPanel');
-    const tabRanking    = document.getElementById('tabRanking');
-    const tabComments   = document.getElementById('tabComments');
-
-    if (tab === 'ranking') {
-        rankingPanel.style.display  = 'block';
-        commentsPanel.style.display = 'none';
-        tabRanking.classList.add('active');
-        tabComments.classList.remove('active');
-        if (allCommentsUnsubscribe) {
-            allCommentsUnsubscribe();
-            allCommentsUnsubscribe = null;
-        }
-    } else {
-        rankingPanel.style.display  = 'none';
-        commentsPanel.style.display = 'block';
-        tabRanking.classList.remove('active');
-        tabComments.classList.add('active');
-        loadAllComments();
-    }
-}
+// switchTab è definita sopra (sezione renderCards)
 
 function loadAllComments() {
     const container = document.getElementById('allCommentsContainer');
