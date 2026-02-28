@@ -79,21 +79,27 @@ function calcS1(a) {   // Prime 3 serate
 function calcS2(a) {   // Serata Cover
     return parseFloat(a.cover || 0);
 }
-function calcS3raw(a) { // Finale (solo criteri)
+function calcS3raw(a) { // Finale (solo criteri, senza cover)
     return parseFloat(a.perfFinale || 0) +
            parseFloat(a.songFinale  || 0) +
            parseFloat(a.lyricsFinale|| 0);
 }
-function calcCriteria(a) {
-    return calcS1(a) + calcS2(a) + calcS3raw(a);
+
+// Media dei 4 criteri finali: perfFinale, songFinale, lyricsFinale, cover → 0–10
+function calcFinalAvg(a) {
+    return (parseFloat(a.perfFinale  || 0) +
+            parseFloat(a.songFinale  || 0) +
+            parseFloat(a.lyricsFinale|| 0) +
+            parseFloat(a.cover       || 0)) / 4;
 }
-// Totale ponderato: criteri 67% + televoto 33% (solo se televotoVisible)
-// max criteri = 7 × 10 = 70; pubblico normalizzato sulla stessa scala
+
+// Totale (scala 0–10): 67% media criteri + 33% televoto
+// Se televotoVisible=false mostra solo la media criteri
 function calculateTotal(a) {
-    const c = calcCriteria(a);
-    if (!televotoVisible) return c.toFixed(1);
+    const avg = calcFinalAvg(a);
+    if (!televotoVisible) return avg.toFixed(2);
     const p = parseFloat(a.pubblicoScore || 0);
-    return (c * 0.67 + p * 2.31).toFixed(1);  // p*2.31 = (p/10)*70*0.33
+    return (avg * 0.67 + p * 0.33).toFixed(2);
 }
 
 // ── Render per serata ───────────────────────────────────────
@@ -153,7 +159,7 @@ function renderS3() {
     if (!grid) return;
     const sorted = [...artists].sort((a, b) => calculateTotal(b) - calculateTotal(a));
     if (!sorted.length) { grid.innerHTML = '<p class="ranking-empty">Nessun artista.</p>'; return; }
-    const totalLabel = televotoVisible ? 'Punteggio Finale (67%+33%)' : 'Punteggio Finale';
+    const totalLabel = televotoVisible ? 'Voto finale /10 (67%+33%)' : 'Media criteri /10';
     grid.innerHTML = sorted.map((a, i) => {
         const pubItem = (televotoVisible && a.pubblicoScore != null && a.pubblicoScore !== '')
             ? `<div class="score-pubblico"><span>📺 Pubblico (33%)</span><strong>${a.pubblicoScore}</strong></div>`
@@ -162,6 +168,7 @@ function renderS3() {
             <div><span>🎤 Performance</span><strong>${a.perfFinale || '-'}</strong></div>
             <div><span>🎵 Brano</span><strong>${a.songFinale || '-'}</strong></div>
             <div><span>📝 Testo</span><strong>${a.lyricsFinale || '-'}</strong></div>
+            <div><span>🎸 Cover</span><strong>${a.cover || '-'}</strong></div>
             ${pubItem}
         `, totalLabel, calculateTotal(a));
     }).join('');
@@ -248,11 +255,12 @@ function showReview(id) {
                 <div class="score-item"><strong>Performance</strong><span>${artist.perfFinale || '-'}</span></div>
                 <div class="score-item"><strong>Brano</strong><span>${artist.songFinale || '-'}</span></div>
                 <div class="score-item"><strong>Testo</strong><span>${artist.lyricsFinale || '-'}</span></div>
+                <div class="score-item"><strong>Cover</strong><span>${artist.cover || '-'}</span></div>
                 ${hasPub ? `<div class="score-item score-item-pub"><strong>📺 Pubblico (33%)</strong><span>${artist.pubblicoScore}</span></div>` : ''}
             </div>
             ${artist.reviewFinale ? `<div class="review-text">${artist.reviewFinale}</div>` : ''}
             <div class="ranking-total" style="margin-top:10px;">
-                <span>Punteggio Finale (67%+33%)</span>
+                <span>${hasPub ? 'Voto finale /10 (67%+33%)' : 'Media criteri /10'}</span>
                 <strong>${calculateTotal(artist)}</strong>
             </div>
         </div>` : ''}

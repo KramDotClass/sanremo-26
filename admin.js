@@ -96,12 +96,19 @@ function loadData() {
 function calcS1(a)  { return parseFloat(a.performance||0) + parseFloat(a.songScore||0) + parseFloat(a.lyrics||0); }
 function calcS2(a)  { return parseFloat(a.cover||0); }
 function calcS3raw(a) { return parseFloat(a.perfFinale||0) + parseFloat(a.songFinale||0) + parseFloat(a.lyricsFinale||0); }
-function calcCriteria(a) { return calcS1(a) + calcS2(a) + calcS3raw(a); }
 
-function calculateTotal(artist) {
-    const c = calcCriteria(artist);
-    const p = parseFloat(artist.pubblicoScore || 0);
-    return (c * 0.67 + p * 2.31).toFixed(1);
+// Media dei 4 criteri finali: perfFinale, songFinale, lyricsFinale, cover → 0–10
+function calcFinalAvg(a) {
+    return (parseFloat(a.perfFinale  || 0) +
+            parseFloat(a.songFinale  || 0) +
+            parseFloat(a.lyricsFinale|| 0) +
+            parseFloat(a.cover       || 0)) / 4;
+}
+
+function calculateTotal(a) {
+    const avg = calcFinalAvg(a);
+    const p   = parseFloat(a.pubblicoScore || 0);
+    return (avg * 0.67 + p * 0.33).toFixed(2);
 }
 
 function renderArtists() {
